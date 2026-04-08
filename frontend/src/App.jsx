@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UploadCloud, FileText, Check, Clock, Calendar, RefreshCw, CheckCircle, AlertCircle, BarChart2 } from 'lucide-react';
+import { UploadCloud, FileText, Check, Clock, Calendar, RefreshCw, CheckCircle, AlertCircle, BarChart2, Anchor, ShieldCheck, Compass, Cpu, Droplet, Lock, Mail } from 'lucide-react';
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, Legend, Cell } from 'recharts';
 import './index.css';
 
@@ -53,7 +53,7 @@ const MOCK_DASHBOARD_DATA = {
 };
 
 function App() {
-  const [appState, setAppState] = useState('upload'); // upload, processing, dashboard
+  const [appState, setAppState] = useState('landing'); // landing, login, upload, processing, dashboard
   const [file, setFile] = useState(null);
   const [hours, setHours] = useState(3);
   const [testDate, setTestDate] = useState('');
@@ -63,6 +63,7 @@ function App() {
   const [dashboardData, setDashboardData] = useState(null);
   const [completedTasks, setCompletedTasks] = useState(new Set());
   const [isReplanning, setIsReplanning] = useState(false);
+  const [showCompletedDays, setShowCompletedDays] = useState(false);
 
   const handleLoadDemo = () => {
     setDashboardData(MOCK_DASHBOARD_DATA);
@@ -196,34 +197,153 @@ function App() {
 
       <main style={{ padding: '0 2rem 2rem' }}>
         <AnimatePresence mode="wait">
-          {appState === 'upload' && (
+          {appState === 'landing' && (
             <motion.div 
               key="landing"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              style={{ width: '100%' }}
+              style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6rem' }}
             >
-              <div style={{ textAlign: 'center', marginBottom: '3rem', paddingTop: '1rem' }}>
-                <h2 style={{ fontSize: '3.5rem', fontWeight: 800, marginBottom: '1rem', color: 'white', textShadow: '0 0 20px var(--primary-glow)' }}>
-                  A sua aprovação, <br/><span style={{ color: 'var(--primary-color)' }}>sem ansiedade.</span>
+              {/* Hero Section */}
+              <div style={{ textAlign: 'center', paddingTop: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid #38bdf8', padding: '0.5rem 1rem', borderRadius: '100px', marginBottom: '2rem', color: '#38bdf8', fontWeight: 'bold' }}>
+                  <Droplet size={16} /> Fluxo de Aprendizado Otimizado
+                </div>
+                <h2 style={{ fontSize: '4.5rem', fontWeight: 900, marginBottom: '1.5rem', color: 'white', lineHeight: 1.1, letterSpacing: '-1px' }}>
+                  Navegue pelo seu Edital <br/>
+                  <span style={{ 
+                    background: 'linear-gradient(to right, #38bdf8, #34d399, #818cf8)', 
+                    WebkitBackgroundClip: 'text', 
+                    WebkitTextFillColor: 'transparent',
+                    textShadow: '0 0 40px rgba(56,189,248,0.3)'
+                  }}>Como uma Onda.</span>
                 </h2>
-                <p style={{ color: '#bae6fd', fontSize: '1.25rem', maxWidth: '700px', margin: '0 auto', lineHeight: 1.6 }}>
-                  Use o poder de um time de especialistas em IA (Crew AI). Extraímos seu edital, elaboramos um cronograma flexível e recomendamos o melhor material, desenhado para o seu tempo.
+                <p style={{ color: '#94a3b8', fontSize: '1.25rem', maxWidth: '750px', margin: '0 auto 3rem', lineHeight: 1.6 }}>
+                  A VibeStudy transforma o caos de páginas densas e leis secas em uma correnteza clara de metas diárias. 
+                  Confiável, analítica e guiada por uma frota de Inteligências Artificiais.
                 </p>
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                  <button 
+                    className="btn" 
+                    style={{ padding: '1.25rem 3rem', fontSize: '1.1rem', background: 'linear-gradient(135deg, #0284c7, #3b82f6)' }}
+                    onClick={() => setAppState('login')}
+                  >
+                    Acessar Plataforma
+                  </button>
+                  <button 
+                    className="btn" 
+                    style={{ padding: '1.25rem 3rem', fontSize: '1.1rem', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56,189,248,0.3)', color: '#38bdf8', boxShadow: 'none' }}
+                    onClick={handleLoadDemo}
+                  >
+                    Testar Demo Aberto
+                  </button>
+                </div>
               </div>
 
-              <div className="glass-card" style={{ maxWidth: '650px', margin: '0 auto' }}>
+              {/* Trust & Features Section */}
+              <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+                <h3 style={{ textAlign: 'center', fontSize: '2rem', color: 'white', marginBottom: '3rem' }}>A Tecnologia por Trás da Fluidez</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+                  
+                  <div className="glass-card day-card" style={{ padding: '2rem', borderTop: '2px solid #38bdf8' }}>
+                    <div style={{ background: 'rgba(56, 189, 248, 0.1)', width: '60px', height: '60px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                      <Compass size={32} color="#38bdf8" />
+                    </div>
+                    <h4 style={{ fontSize: '1.3rem', color: 'white', marginBottom: '1rem' }}>Sempre no Norte Correto</h4>
+                    <p style={{ color: '#94a3b8', lineHeight: 1.6 }}>Os editais de aprovação são vastos e confusos. Nossa inteligência encontra a bússola exata, cruzando sua carga horária com as matérias que representam o maior peso estatístico da banca.</p>
+                  </div>
+
+                  <div className="glass-card day-card" style={{ padding: '2rem', borderTop: '2px solid #34d399' }}>
+                    <div style={{ background: 'rgba(52, 211, 153, 0.1)', width: '60px', height: '60px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                      <Anchor size={32} color="#34d399" />
+                    </div>
+                    <h4 style={{ fontSize: '1.3rem', color: 'white', marginBottom: '1rem' }}>Ancoragem no Mercado</h4>
+                    <p style={{ color: '#94a3b8', lineHeight: 1.6 }}>Não basta ter um cronograma vazio. O VibeStudy procura ativamente os melhores cursinhos focados na sua área de concurso (Estratégia, Gran, Direção) e recomenda os materiais magnos que cobrem o seu edital perfeitamente.</p>
+                  </div>
+
+                  <div className="glass-card day-card" style={{ padding: '2rem', borderTop: '2px solid #a78bfa' }}>
+                    <div style={{ background: 'rgba(167, 139, 250, 0.1)', width: '60px', height: '60px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                      <ShieldCheck size={32} color="#a78bfa" />
+                    </div>
+                    <h4 style={{ fontSize: '1.3rem', color: 'white', marginBottom: '1rem' }}>Segurança & Privacidade</h4>
+                    <p style={{ color: '#94a3b8', lineHeight: 1.6 }}>Todas as informações enviadas e calculadas via API Neural obedecem a padrões rigorosos. Seu estilo de vida e dados de tempo são expurgados da rede neural após a geração do micro-cronograma final.</p>
+                  </div>
+
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {appState === 'login' && (
+            <motion.div 
+              key="login"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              style={{ width: '100%', display: 'flex', justifyContent: 'center', paddingTop: '4rem' }}
+            >
+              <div className="glass-card" style={{ width: '100%', maxWidth: '450px', padding: '3rem 2.5rem' }}>
+                <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem', color: 'white', textAlign: 'center' }}>
+                  Acesse o Mar.
+                </h2>
+                <p style={{ color: '#94a3b8', textAlign: 'center', marginBottom: '3rem' }}>Conecte-se para mergulhar no seu cronograma.</p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#bae6fd', fontWeight: 600, marginBottom: '0.5rem' }}>
+                      <Mail size={16} /> E-mail Profissional
+                    </label>
+                    <input type="email" placeholder="nome@exemplo.com" style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', color: 'white', fontSize: '1rem' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#bae6fd', fontWeight: 600, marginBottom: '0.5rem' }}>
+                      <Lock size={16} /> Senha Segura
+                    </label>
+                    <input type="password" placeholder="••••••••" style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', color: 'white', fontSize: '1rem' }} />
+                  </div>
+                  <button 
+                    className="btn" 
+                    style={{ padding: '1.25rem', fontSize: '1.1rem', background: 'linear-gradient(135deg, #0284c7, #3b82f6)', marginTop: '1rem' }}
+                    onClick={() => setAppState('upload')}
+                  >
+                    Mergulhar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {appState === 'upload' && (
+            <motion.div 
+              key="upload"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '2rem' }}
+            >
+              <h2 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '1rem', color: 'white', textAlign: 'center' }}>
+                Área de <span style={{ color: 'var(--primary-color)' }}>Ancoragem</span>
+              </h2>
+              <p style={{ color: '#94a3b8', fontSize: '1.1rem', maxWidth: '600px', textAlign: 'center', marginBottom: '3rem' }}>
+                Faça o upload do documento bruto do seu edital de concurso. Nossa rede de Agentes de IA vai mastigar e converter em plano focado.
+              </p>
+
+              {/* Upload Engine Box */}
+              <div className="glass-card" style={{ width: '100%', maxWidth: '750px', padding: '2.5rem', position: 'relative', border: '1px solid rgba(56, 189, 248, 0.3)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 30px rgba(56, 189, 248, 0.1)' }}>
+                <div style={{ position: 'absolute', top: '-1px', left: '10%', width: '80%', height: '2px', background: 'linear-gradient(90deg, transparent, #38bdf8, transparent)' }}></div>
+                
                 <div 
                   className="file-drop-area"
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={handleDrop}
+                  style={{ marginBottom: '2rem', background: file ? 'rgba(56, 189, 248, 0.05)' : 'rgba(0,0,0,0.2)' }}
                 >
                   {!file ? (
                     <>
                       <UploadCloud size={48} color="var(--primary-color)" style={{ marginBottom: '1rem' }} />
-                      <h3 style={{ marginBottom: '0.5rem' }}>Arraste seu Edital em PDF aqui</h3>
-                      <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1.5rem' }}>ou</p>
+                      <h3 style={{ marginBottom: '0.5rem', fontSize: '1.3rem' }}>Ancore seu Edital em PDF aqui</h3>
+                      <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1.5rem' }}>E deixe a maré da IA organizar tudo.</p>
                       <input 
                         type="file" 
                         id="file-upload" 
@@ -231,8 +351,8 @@ function App() {
                         style={{ display: 'none' }} 
                         onChange={handleFileChange}
                       />
-                      <label htmlFor="file-upload" className="btn" style={{ background: 'rgba(255,255,255,0.1)', boxShadow: 'none' }}>
-                        Selecionar Arquivo
+                      <label htmlFor="file-upload" className="btn" style={{ background: 'var(--primary-color)', color: '#fff', padding: '0.75rem 2rem' }}>
+                        Navegar Arquivos
                       </label>
                     </>
                   ) : (
@@ -240,85 +360,54 @@ function App() {
                       <div style={{ background: 'rgba(5, 150, 105, 0.1)', padding: '1.5rem', borderRadius: '50%', marginBottom: '1rem', boxShadow: '0 0 20px var(--success-glow)' }}>
                         <FileText size={40} color="var(--success-color)" />
                       </div>
-                      <h3 style={{ color: 'var(--success-color)' }}>{file.name}</h3>
+                      <h3 style={{ color: 'var(--success-color)', fontSize: '1.2rem' }}>{file.name}</h3>
                       <p style={{ color: '#94a3b8', fontSize: '0.875rem', margin: '0.5rem 0 1.5rem' }}>
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                        {(file.size / 1024 / 1024).toFixed(2)} MB - Preparado para extração
                       </p>
-                      <button className="btn" style={{ background: 'transparent', border: '1px solid var(--danger-color)', color: 'var(--danger-color)', boxShadow: 'none' }} onClick={() => setFile(null)}>
-                        Remover Editar
+                      <button className="btn" style={{ background: 'transparent', border: '1px solid var(--danger-color)', color: 'var(--danger-color)', boxShadow: 'none', padding: '0.5rem 1rem' }} onClick={() => setFile(null)}>
+                        Trocar Arquivo
                       </button>
                     </div>
                   )}
                 </div>
 
-                <div style={{ marginTop: '2.5rem' }}>
-                  <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 600, fontSize: '1.1rem' }}>
-                    Quantas horas você tem livres por dia?
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                    <input 
-                      type="range" 
-                      min="1" 
-                      max="12" 
-                      step="0.5" 
-                      value={hours} 
-                      onChange={(e) => setHours(parseFloat(e.target.value))}
-                      style={{ flex: 1, accentColor: 'var(--primary-color)' }}
-                    />
-                    <div style={{ background: 'rgba(14, 165, 233, 0.15)', padding: '0.75rem 1.25rem', borderRadius: '12px', color: 'var(--primary-color)', fontWeight: 'bold', fontSize: '1.2rem', boxShadow: '0 0 10px var(--primary-glow)' }}>
-                      {hours}h
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', textAlign: 'left' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#bae6fd', fontWeight: 600, fontSize: '0.9rem' }}>Horas Livres por Dia</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem 1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <input 
+                        type="range" min="1" max="12" step="0.5" value={hours} 
+                        onChange={(e) => setHours(parseFloat(e.target.value))}
+                        style={{ flex: 1, accentColor: 'var(--primary-color)' }}
+                      />
+                      <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '1.1rem', minWidth: '40px', textAlign: 'right' }}>{hours}h</span>
                     </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#bae6fd', fontWeight: 600, fontSize: '0.9rem' }}>Data da Prova (Opcional)</label>
+                    <input 
+                      type="date"
+                      value={testDate}
+                      onChange={(e) => setTestDate(e.target.value)}
+                      style={{ 
+                        width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', 
+                        border: '1px solid rgba(255,255,255,0.05)', color: 'white', fontSize: '0.95rem',
+                        fontFamily: 'inherit', colorScheme: 'dark'
+                      }}
+                    />
                   </div>
                 </div>
 
-                <div style={{ marginTop: '2rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '1.1rem' }}>
-                    Data prevista da Prova (Opcional)
-                  </label>
-                  <input 
-                    type="date"
-                    value={testDate}
-                    onChange={(e) => setTestDate(e.target.value)}
-                    style={{ 
-                      width: '100%', padding: '1rem', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', 
-                      border: '1px solid var(--card-border)', color: 'white', fontSize: '1.1rem',
-                      fontFamily: 'inherit', colorScheme: 'dark'
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '1rem', marginTop: '3rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '2.5rem' }}>
                   <button 
                     className="btn" 
-                    style={{ flex: 1, padding: '1.25rem', fontSize: '1.1rem' }}
+                    style={{ flex: 1, padding: '1.25rem', fontSize: '1.1rem', background: 'linear-gradient(135deg, #0284c7, #3b82f6)' }}
                     disabled={!file}
                     onClick={handleUpload}
                   >
-                    Acionar Inteligência Artificial
+                    <Cpu size={18} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} /> 
+                    Processar VibeStudy
                   </button>
-                  <button 
-                    className="btn" 
-                    style={{ flex: 1, padding: '1.25rem', fontSize: '1.1rem', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid #38bdf8', color: '#38bdf8', boxShadow: 'none' }}
-                    onClick={handleLoadDemo}
-                  >
-                    Ver Visual (Modo Demo)
-                  </button>
-                </div>
-              </div>
-
-              {/* Sections: Quem Somos & Missão */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginTop: '5rem', paddingBottom: '3rem' }}>
-                <div className="glass-card" style={{ padding: '2rem' }}>
-                  <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--primary-color)' }}>Quem Somos</h3>
-                  <p style={{ color: '#cbd5e1', lineHeight: 1.7 }}>
-                    Somos entusiastas de tecnologia focados em educação. Observamos que o principal fator que afasta estudantes da vitória não é a inteligência orgânica de cada um, mas sim a <strong>sobrecarga</strong> e falta de foco. O VibeStudy foi desenhado para eliminar a exaustão visual de um edital gigante.
-                  </p>
-                </div>
-                <div className="glass-card" style={{ padding: '2rem' }}>
-                  <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem', color: 'var(--success-color)' }}>O Que Queremos Fazer</h3>
-                  <p style={{ color: '#cbd5e1', lineHeight: 1.7 }}>
-                    Atuar como seu mentor automatizado 24/7. Através da orquestração de múltiplos agentes LLM (CrewAI), separamos o que realmente importa e ainda fazemos o cruzamento com o mercado para recomendar <strong>Cursos Livres e Preparatórios</strong> exatamente para o conteúdo da sua prova.
-                  </p>
                 </div>
               </div>
             </motion.div>
@@ -583,12 +672,27 @@ function App() {
               <h2 style={{ fontSize: '2rem', marginBottom: '1.5rem', marginTop: '2rem', color: 'white', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                  Seu Checklist Diário Prático
               </h2>
+
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+                <button 
+                  onClick={() => setShowCompletedDays(false)}
+                  style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer', background: !showCompletedDays ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid ' + (!showCompletedDays ? 'transparent' : 'rgba(255,255,255,0.1)'), fontWeight: 'bold', transition: 'all 0.2s' }}>
+                  Pendentes
+                </button>
+                <button 
+                  onClick={() => setShowCompletedDays(true)}
+                  style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer', background: showCompletedDays ? 'var(--success-color)' : 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid ' + (showCompletedDays ? 'transparent' : 'rgba(255,255,255,0.1)'), fontWeight: 'bold', transition: 'all 0.2s' }}>
+                  Arquivados (Concluídos)
+                </button>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
                 {dashboardData.daily_plan.map((day, idx) => {
                   const allDayTasksCompleted = day.tasks.every(t => completedTasks.has(t.id));
                   
-                  // Retira da visualização painéis completos
-                  if (allDayTasksCompleted) return null;
+                  // Lógica de Abas
+                  if (showCompletedDays && !allDayTasksCompleted) return null;
+                  if (!showCompletedDays && allDayTasksCompleted) return null;
                   
                   const postitColors = [
                     'rgba(56, 189, 248, 0.1)', 
