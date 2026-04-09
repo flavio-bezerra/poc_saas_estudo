@@ -1,790 +1,988 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UploadCloud, FileText, Check, Clock, Calendar, RefreshCw, CheckCircle, AlertCircle, BarChart2, Anchor, ShieldCheck, Compass, Cpu, Droplet, Lock, Mail } from 'lucide-react';
-import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, Legend, Cell } from 'recharts';
+import {
+  UploadCloud, FileText, Check, Clock, Calendar, RefreshCw,
+  CheckCircle, AlertCircle, BarChart2, Compass, Cpu, Lock,
+  Mail, TrendingUp, Star, ArrowRight, Layers, Target, Waves
+} from 'lucide-react';
+import {
+  ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip,
+  ResponsiveContainer, BarChart, Bar, CartesianGrid, Legend, Cell
+} from 'recharts';
 import './index.css';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
+/* ══════════════════════════════════════════════════
+   AERIAL OCEAN VIEW — ondas vistas de cima
+   Linhas sinusoidais densas simulando textura
+   de oceano em visão aérea / drone
+   ══════════════════════════════════════════════════ */
+
+// Gera o path de uma onda sinusoidal horizontal
+const wavePath = (baseY, amplitude, wavelength, phaseOffset = 0) => {
+  const W = 1600;
+  let d = `M ${-wavelength + phaseOffset} ${baseY}`;
+  const cycles = Math.ceil(W / (wavelength / 2)) + 4;
+  for (let i = 0; i < cycles; i++) {
+    const x0 = -wavelength + phaseOffset + i * (wavelength / 2);
+    const x1 = x0 + wavelength / 2;
+    const sign = i % 2 === 0 ? -1 : 1;
+    d += ` Q ${(x0 + x1) / 2} ${baseY + sign * amplitude}, ${x1} ${baseY}`;
+  }
+  return d;
+};
+
+const AerialOceanBG = () => {
+  const VW = 1600;
+  const VH = 900;
+
+  // Swell primário — ondas largas e suaves (vento ao largo)
+  const primarySwell = Array.from({ length: 14 }, (_, i) => ({
+    y: 30 + i * 64,
+    amp: 18 + (i % 3) * 9,
+    wl: 380 + (i % 4) * 60,
+    phase: (i * 55) % 220,
+    strokeW: i % 5 === 0 ? 1.8 : 1,
+    color: i % 4 === 0
+      ? 'rgba(0,212,255,0.16)'
+      : i % 4 === 2
+        ? 'rgba(45,212,191,0.10)'
+        : 'rgba(0,170,210,0.09)',
+  }));
+
+  // Swell secundário — ondas médias em ângulo leve (~-12°)
+  const secondarySwell = Array.from({ length: 20 }, (_, i) => ({
+    y: 10 + i * 46,
+    amp: 9 + (i % 3) * 5,
+    wl: 210 + (i % 3) * 55,
+    phase: (i * 33) % 180,
+    strokeW: 0.7,
+    color: i % 3 === 0
+      ? 'rgba(0,200,240,0.08)'
+      : 'rgba(0,150,200,0.05)',
+  }));
+
+  // Ripples — pequenas ondulações de superfície
+  const ripples = Array.from({ length: 32 }, (_, i) => ({
+    y: 5 + i * 29,
+    amp: 4 + (i % 2) * 3,
+    wl: 110 + (i % 4) * 30,
+    phase: (i * 19) % 120,
+    strokeW: 0.5,
+    color: 'rgba(0,212,255,0.04)',
+  }));
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+
+      {/* ── Ripples — camada base ── */}
+      <svg
+        viewBox={`0 0 ${VW} ${VH}`}
+        preserveAspectRatio="xMidYMid slice"
+        className="aerial-ripple"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      >
+        {ripples.map((w, i) => (
+          <path
+            key={i}
+            d={wavePath(w.y, w.amp, w.wl, w.phase)}
+            fill="none"
+            stroke={w.color}
+            strokeWidth={w.strokeW}
+          />
+        ))}
+      </svg>
+
+      {/* ── Swell secundário — ligeiramente rotacionado ── */}
+      <svg
+        viewBox={`0 0 ${VW} ${VH}`}
+        preserveAspectRatio="xMidYMid slice"
+        className="aerial-secondary"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      >
+        <g transform={`rotate(-10, ${VW / 2}, ${VH / 2})`}>
+          {secondarySwell.map((w, i) => (
+            <path
+              key={i}
+              d={wavePath(w.y, w.amp, w.wl, w.phase)}
+              fill="none"
+              stroke={w.color}
+              strokeWidth={w.strokeW}
+            />
+          ))}
+        </g>
+      </svg>
+
+      {/* ── Swell primário — camada principal ── */}
+      <svg
+        viewBox={`0 0 ${VW} ${VH}`}
+        preserveAspectRatio="xMidYMid slice"
+        className="aerial-primary"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+      >
+        {primarySwell.map((w, i) => (
+          <path
+            key={i}
+            d={wavePath(w.y, w.amp, w.wl, w.phase)}
+            fill="none"
+            stroke={w.color}
+            strokeWidth={w.strokeW}
+            strokeLinecap="round"
+          />
+        ))}
+      </svg>
+
+    </div>
+  );
+};
+
+/* ── Logo ─────────────────────────────────────────────────── */
+const VibeVectorLogo = () => (
+  <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"
+    style={{ filter: 'drop-shadow(0 0 12px rgba(0,212,255,0.6))' }}>
+    <rect width="100" height="100" rx="22" fill="url(#logo_ocean)" />
+    <path d="M28 35 L50 68 L72 35" stroke="white" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M50 68 L80 25" stroke="#00d4ff" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />
+    <defs>
+      <linearGradient id="logo_ocean" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#004e7c" />
+        <stop offset="0.5" stopColor="#007ab8" />
+        <stop offset="1" stopColor="#00c2e8" />
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
+/* ── Tooltip do Gráfico ──────────────────────────────────── */
 function CustomTooltip({ active, payload }) {
-  if (active && payload && payload.length) {
+  if (active && payload?.length) {
     const data = payload[0].payload;
     return (
-      <div className="glass-card" style={{ padding: '1rem', border: '1px solid var(--primary-color)' }}>
-        <p style={{ color: '#bae6fd', fontWeight: 'bold' }}>{data.name}</p>
-        <p style={{ color: '#fff', fontSize: '0.875rem', marginTop: '0.5rem' }}>{data.total_hours} horas recomendadas</p>
+      <div style={{
+        padding: '0.75rem 1rem',
+        background: 'rgba(2,12,24,0.95)',
+        border: '1px solid rgba(0,212,255,0.2)',
+        borderRadius: '10px',
+        backdropFilter: 'blur(16px)',
+      }}>
+        <p style={{ color: '#00d4ff', fontWeight: 700, marginBottom: '0.2rem' }}>{data.name}</p>
+        <p style={{ color: '#e2e8f0', fontSize: '0.82rem' }}>{data.total_hours}h restantes</p>
       </div>
     );
   }
   return null;
 }
 
+/* ── Mock Data ───────────────────────────────────────────── */
 const MOCK_DASHBOARD_DATA = {
   total_estimated_hours: 120,
   daily_hours: 4,
   total_days: 30,
   knowledge_areas: [
-    { name: "Direito Constitucional", description: "Princípios, direitos e garantias essenciais, além de organização do estado.", total_hours: 20 },
-    { name: "Direito Administrativo", description: "Atos, poderes, administração pública e a nova lei de licitações.", total_hours: 25 },
-    { name: "Língua Portuguesa", description: "Interpretação profunda de textos e forte domínio de análise sintática.", total_hours: 30 },
+    { name: "Direito Constitucional",       description: "Princípios, direitos e garantias essenciais, além de organização do estado.", total_hours: 20 },
+    { name: "Direito Administrativo",       description: "Atos, poderes, administração pública e a nova lei de licitações.", total_hours: 25 },
+    { name: "Língua Portuguesa",            description: "Interpretação profunda de textos e forte domínio de análise sintática.", total_hours: 30 },
     { name: "Raciocínio Lógico Matemático", description: "Lógica proposicional, análises combinatórias e probabilidade estatística.", total_hours: 15 },
-    { name: "Informática Básica", description: "Redes, segurança, conceitos virais de internet e banco de dados corporativo.", total_hours: 10 },
-    { name: "Legislação Específica", description: "Regimentos estaduais, lei orgânica, direitos das autarquias locais.", total_hours: 20 }
+    { name: "Informática Básica",           description: "Redes, segurança, conceitos virais de internet e banco de dados corporativo.", total_hours: 10 },
+    { name: "Legislação Específica",        description: "Regimentos estaduais, lei orgânica, direitos das autarquias locais.", total_hours: 20 },
   ],
   recommended_courses: [
-    { title: "Série Pro: Carreiras Jurídicas", platform: "Estratégia Concursos", description: "Material denso de jurisprudência." },
-    { title: "Assinatura Ilimitada Plus", platform: "Gran Cursos", description: "Centenas de matrizes de cursos em vídeo." },
-    { title: "Projeto Focus (Direto ao ponto)", platform: "Direção Concursos", description: "PDFs diretos e mapas mentais ágeis sem poluição." },
-    { title: "Plataforma Ilimitada de Questões", platform: "QConcursos", description: "Banco dinâmico com mais de milhões de testes baseados no seu edital." }
+    { title: "Série Pro: Carreiras Jurídicas",    platform: "Estratégia Concursos", description: "Material denso de jurisprudência com simulados focados na banca." },
+    { title: "Assinatura Ilimitada Plus",          platform: "Gran Cursos",          description: "Centenas de videoaulas com professores especialistas por carreira." },
+    { title: "Projeto Focus",                      platform: "Direção Concursos",    description: "PDFs diretos e mapas mentais ágeis sem poluição de conteúdo." },
+    { title: "Plataforma Ilimitada de Questões",   platform: "QConcursos",           description: "Banco dinâmico com milhões de questões filtradas pelo seu edital." },
   ],
   daily_plan: [
-    { day: 1, tasks: [ { id: "1", title: "Constituição Org.", duration: 2, completed: true, area: "Direito Constitucional" }, { id: "2", title: "Ortografia", duration: 2, completed: true, area: "Língua Portuguesa" } ] },
-    { day: 2, tasks: [ { id: "3", title: "Atos Administrativos", duration: 1.5, completed: false, area: "Direito Administrativo" }, { id: "4", title: "Windows/Linux", duration: 1, completed: false, area: "Informática Básica" }, { id: "5", title: "Lógica", duration: 1.5, completed: false, area: "Raciocínio Lógico Matemático" } ] },
-    { day: 3, tasks: [ { id: "6", title: "Licitações Lei", duration: 3, completed: false, area: "Direito Administrativo" }, { id: "7", title: "Excel Avançado", duration: 1, completed: false, area: "Informática Básica" } ] },
-    { day: 4, tasks: [ { id: "8", title: "Sintaxe da Língua", duration: 2, completed: false, area: "Língua Portuguesa" }, { id: "9", title: "Licitações (Aprofundamento)", duration: 2, completed: false, area: "Direito Administrativo" } ] },
-    { day: 5, tasks: [ { id: "10", title: "Regimes da Serventia", duration: 2.5, completed: false, area: "Legislação Específica" }, { id: "11", title: "Concordância Verbal", duration: 1.5, completed: false, area: "Língua Portuguesa" } ] },
-    { day: 6, tasks: [ { id: "12", title: "Segurança de TI", duration: 2, completed: false, area: "Informática Básica" }, { id: "13", title: "Probabilidade Matemática", duration: 2, completed: false, area: "Raciocínio Lógico Matemático" } ] },
-    { day: 7, tasks: [ { id: "14", title: "Simulado Geral e Revisão", duration: 4, completed: false, area: "Língua Portuguesa" } ] },
-    { day: 8, tasks: [ { id: "15", title: "Garantias Constitucionais", duration: 2, completed: false, area: "Direito Constitucional" }, { id: "16", title: "Improbidade Administrativa", duration: 2, completed: false, area: "Direito Administrativo" } ] },
-    { day: 9, tasks: [ { id: "17", title: "Redação e Tese", duration: 2, completed: false, area: "Língua Portuguesa" }, { id: "18", title: "Estatística Pura", duration: 2, completed: false, area: "Raciocínio Lógico Matemático" } ] },
-    { day: 10, tasks: [ { id: "19", title: "Direitos Políticos", duration: 1.5, completed: false, area: "Direito Constitucional" }, { id: "20", title: "Bancos de Dados", duration: 1.5, completed: false, area: "Informática Básica" }, { id: "21", title: "Poder Executivo", duration: 1, completed: false, area: "Direito Administrativo" } ] }
-  ]
+    { day: 1,  tasks: [{ id:"1",  title:"Constituição Org.",          duration:2,   completed:true,  area:"Direito Constitucional" },      { id:"2",  title:"Ortografia",                  duration:2,   completed:true,  area:"Língua Portuguesa" }] },
+    { day: 2,  tasks: [{ id:"3",  title:"Atos Administrativos",       duration:1.5, completed:false, area:"Direito Administrativo" },      { id:"4",  title:"Windows/Linux",              duration:1,   completed:false, area:"Informática Básica" },       { id:"5", title:"Lógica", duration:1.5, completed:false, area:"Raciocínio Lógico Matemático" }] },
+    { day: 3,  tasks: [{ id:"6",  title:"Licitações Lei",             duration:3,   completed:false, area:"Direito Administrativo" },      { id:"7",  title:"Excel Avançado",             duration:1,   completed:false, area:"Informática Básica" }] },
+    { day: 4,  tasks: [{ id:"8",  title:"Sintaxe da Língua",          duration:2,   completed:false, area:"Língua Portuguesa" },           { id:"9",  title:"Licitações (Aprofundamento)",duration:2,   completed:false, area:"Direito Administrativo" }] },
+    { day: 5,  tasks: [{ id:"10", title:"Regimes da Serventia",       duration:2.5, completed:false, area:"Legislação Específica" },       { id:"11", title:"Concordância Verbal",        duration:1.5, completed:false, area:"Língua Portuguesa" }] },
+    { day: 6,  tasks: [{ id:"12", title:"Segurança de TI",            duration:2,   completed:false, area:"Informática Básica" },          { id:"13", title:"Probabilidade Matemática",   duration:2,   completed:false, area:"Raciocínio Lógico Matemático" }] },
+    { day: 7,  tasks: [{ id:"14", title:"Simulado Geral e Revisão",   duration:4,   completed:false, area:"Língua Portuguesa" }] },
+    { day: 8,  tasks: [{ id:"15", title:"Garantias Constitucionais",  duration:2,   completed:false, area:"Direito Constitucional" },      { id:"16", title:"Improbidade Administrativa", duration:2,   completed:false, area:"Direito Administrativo" }] },
+    { day: 9,  tasks: [{ id:"17", title:"Redação e Tese",             duration:2,   completed:false, area:"Língua Portuguesa" },           { id:"18", title:"Estatística Pura",           duration:2,   completed:false, area:"Raciocínio Lógico Matemático" }] },
+    { day: 10, tasks: [{ id:"19", title:"Direitos Políticos",         duration:1.5, completed:false, area:"Direito Constitucional" },      { id:"20", title:"Bancos de Dados",            duration:1.5, completed:false, area:"Informática Básica" },       { id:"21", title:"Poder Executivo", duration:1, completed:false, area:"Direito Administrativo" }] },
+  ],
 };
 
+/* ── Cores oceânicas das matérias ────────────────────────── */
+const OCEAN_PALETTE = ['#00d4ff', '#10B981', '#A855F7', '#F59E0B', '#F43F5E', '#3B82F6'];
+const DAY_COLORS    = ['#00C2E8', '#34D399', '#C084FC', '#FBBF24', '#FB7185'];
+
+/* ── Variantes de animação ───────────────────────────────── */
+const pageIn  = { initial: { opacity: 0, y: 18 }, animate: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] } }, exit: { opacity: 0, y: -12, transition: { duration: 0.25 } } };
+const fadeUp  = { initial: { opacity: 0, y: 22 }, animate: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
+const stagger = { animate: { transition: { staggerChildren: 0.08 } } };
+
+/* ── Input & Label styles compartilhados ────────────────── */
+const inputStyle = {
+  width: '100%',
+  padding: '0.75rem 1rem',
+  borderRadius: '10px',
+  background: 'rgba(0,10,20,0.5)',
+  border: '1px solid rgba(0,212,255,0.1)',
+  color: '#ffffff',
+  fontSize: '0.9rem',
+  fontFamily: 'Outfit, sans-serif',
+};
+const labelStyle = {
+  display: 'block',
+  marginBottom: '0.5rem',
+  color: '#cbd5e1',
+  fontSize: '0.78rem',
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.8px',
+};
+
+/* ══════════════════════════════════════════════════
+   APP
+   ══════════════════════════════════════════════════ */
 function App() {
-  const [appState, setAppState] = useState('landing'); // landing, login, upload, processing, dashboard
-  const [file, setFile] = useState(null);
-  const [hours, setHours] = useState(3);
-  const [testDate, setTestDate] = useState('');
-  const [taskId, setTaskId] = useState('');
-  const [progress, setProgress] = useState(0);
-  const [statusMessage, setStatusMessage] = useState('');
-  const [dashboardData, setDashboardData] = useState(null);
-  const [completedTasks, setCompletedTasks] = useState(new Set());
-  const [isReplanning, setIsReplanning] = useState(false);
+  const [appState, setAppState]                 = useState('landing');
+  const [file, setFile]                         = useState(null);
+  const [hours, setHours]                       = useState(3);
+  const [testDate, setTestDate]                 = useState('');
+  const [taskId, setTaskId]                     = useState('');
+  const [progress, setProgress]                 = useState(0);
+  const [statusMessage, setStatusMessage]       = useState('');
+  const [dashboardData, setDashboardData]       = useState(null);
+  const [completedTasks, setCompletedTasks]     = useState(new Set());
+  const [isReplanning, setIsReplanning]         = useState(false);
   const [showCompletedDays, setShowCompletedDays] = useState(false);
 
-  const handleLoadDemo = () => {
-    setDashboardData(MOCK_DASHBOARD_DATA);
-    setAppState('dashboard');
-  };
+  const handleLoadDemo = () => { setDashboardData(MOCK_DASHBOARD_DATA); setAppState('dashboard'); };
 
-  // Upload View handlers
   const handleDrop = (e) => {
     e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.type === 'application/pdf') {
-        setFile(droppedFile);
-      } else {
-        alert("Por favor, envie um arquivo PDF do seu edital.");
-      }
-    }
+    const f = e.dataTransfer.files?.[0];
+    if (f) f.type === 'application/pdf' ? setFile(f) : alert('Envie um arquivo PDF do seu edital.');
   };
 
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
-    }
-  };
+  const handleFileChange = (e) => { if (e.target.files?.[0]) setFile(e.target.files[0]); };
 
   const handleUpload = async () => {
     if (!file) return;
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('hours_per_day', hours);
-    if (testDate) {
-      formData.append('test_date', testDate);
-    }
-
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('hours_per_day', hours);
+    if (testDate) fd.append('test_date', testDate);
     try {
-      setAppState('processing');
-      setStatusMessage('Enviando edital...');
-      setProgress(5);
-      
-      const response = await axios.post(`${API_BASE_URL}/upload`, formData);
-      setTaskId(response.data.task_id);
-    } catch (error) {
-      console.error(error);
-      alert('Erro ao enviar o edital.');
-      setAppState('upload');
-    }
+      setAppState('processing'); setStatusMessage('Enviando edital...'); setProgress(5);
+      const res = await axios.post(`${API_BASE_URL}/upload`, fd);
+      setTaskId(res.data.task_id);
+    } catch { alert('Erro ao enviar o edital.'); setAppState('upload'); }
   };
 
-  // Processing View Polling
   useEffect(() => {
-    let interval;
+    let iv;
     if (appState === 'processing' && taskId) {
-      interval = setInterval(async () => {
+      iv = setInterval(async () => {
         try {
           const res = await axios.get(`${API_BASE_URL}/status/${taskId}`);
           setProgress(res.data.progress || 0);
-          
-          if (res.data.progress < 30) setStatusMessage('Limpando PDF e extraindo conteúdo chave...');
-          else if (res.data.progress < 70) setStatusMessage('Orquestrando com IA: dividindo tópicos e estimando tempos...');
-          else if (res.data.progress < 100) setStatusMessage('Montando seu cronograma ideal...');
-
+          if (res.data.progress < 30) setStatusMessage('Mergulhando no edital...');
+          else if (res.data.progress < 70) setStatusMessage('Agentes mapeando as correntes de conhecimento...');
+          else setStatusMessage('Montando sua rota de navegação...');
           if (res.data.status === 'completed') {
-            clearInterval(interval);
-            setDashboardData(res.data.result);
+            clearInterval(iv); setDashboardData(res.data.result);
             setTimeout(() => setAppState('dashboard'), 800);
           } else if (res.data.status === 'error') {
-            clearInterval(interval);
-            setStatusMessage('Erro no processamento. ' + res.data.message);
+            clearInterval(iv); setStatusMessage('Erro: ' + res.data.message);
           }
-        } catch (error) {
-          console.error(error);
-        }
+        } catch {}
       }, 1000);
     }
-    return () => clearInterval(interval);
+    return () => clearInterval(iv);
   }, [appState, taskId]);
 
-  // Dashboard handlers
-  const toggleTask = (taskIdStr) => {
-    const newSelected = new Set(completedTasks);
-    if (newSelected.has(taskIdStr)) {
-      newSelected.delete(taskIdStr);
-    } else {
-      newSelected.add(taskIdStr);
-    }
-    setCompletedTasks(newSelected);
+  const toggleTask = (id) => {
+    const s = new Set(completedTasks);
+    s.has(id) ? s.delete(id) : s.add(id);
+    setCompletedTasks(s);
   };
 
-  const getOverallProgress = () => {
+  const getProgress = () => {
     if (!dashboardData) return 0;
-    const totalTasks = dashboardData.daily_plan.reduce((acc, day) => acc + day.tasks.length, 0);
-    if (totalTasks === 0) return 0;
-    return Math.round((completedTasks.size / totalTasks) * 100);
+    const total = dashboardData.daily_plan.reduce((a, d) => a + d.tasks.length, 0);
+    return total === 0 ? 0 : Math.round((completedTasks.size / total) * 100);
   };
 
   const handleReplan = async () => {
     setIsReplanning(true);
     try {
-      // Simulate replan api call
       const res = await axios.post(`${API_BASE_URL}/replan`, {
-        missed_tasks: [],
-        remaining_days: dashboardData.total_days,
-        hours_per_day: hours,
-        current_plan: dashboardData.daily_plan
+        missed_tasks: [], remaining_days: dashboardData.total_days,
+        hours_per_day: hours, current_plan: dashboardData.daily_plan,
       });
       alert(res.data.message);
-    } catch (err) {
-      console.error(err);
-    }
+    } catch {}
     setIsReplanning(false);
   };
 
+  /* ─────────────────────────────────────────────── */
   return (
     <>
-      <div className="bg-fluid"></div>
-      <div style={{ maxWidth: '1000px', margin: '0 auto', width: '100%', position: 'relative', zIndex: 1 }}>
-      <header className="top-bar" style={{ borderRadius: appState === 'dashboard' ? '0 0 16px 16px' : '0', marginBottom: '2rem' }}>
-        <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.5rem', margin: 0 }}>
-          <div style={{ background: 'var(--primary-color)', padding: '0.5rem', borderRadius: '8px' }}>
-            <FileText size={20} color="white" />
-          </div>
-          Vibe<span style={{ color: 'var(--primary-color)' }}>Study</span>
-        </h1>
-        {appState === 'dashboard' && (
-          <div className="progress-circle" style={{ '--p': `${getOverallProgress()}%` }}>
-            <span>{getOverallProgress()}%</span>
-          </div>
-        )}
+      {/* ── Background — Visão Aérea Oceânica ──── */}
+      <div className="bg-fluid">
+        <AerialOceanBG />
+      </div>
+
+      {/* ── Navigation ───────────────────────────── */}
+      <header className="top-bar">
+        <button
+          onClick={() => setAppState('landing')}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+        >
+          <VibeVectorLogo />
+          <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.5px' }}>
+            Vibe<span style={{ color: '#00d4ff' }}>Study</span>
+          </span>
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {appState === 'dashboard' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span style={{ color: '#cbd5e1', fontSize: '0.78rem', fontWeight: 600 }}>PROGRESSO</span>
+              <div className="progress-circle" style={{ '--p': `${getProgress()}%` }}>
+                <span>{getProgress()}%</span>
+              </div>
+            </div>
+          )}
+          {appState !== 'dashboard' && (
+            <button
+              className="btn"
+              style={{ padding: '0.5rem 1.25rem', fontSize: '0.82rem', background: 'rgba(0,212,255,0.07)', border: '1px solid rgba(0,212,255,0.2)', boxShadow: 'none' }}
+              onClick={() => setAppState('login')}
+            >
+              Entrar
+            </button>
+          )}
+        </div>
       </header>
 
-      <main style={{ padding: '0 2rem 2rem' }}>
+      {/* ── Main ─────────────────────────────────── */}
+      <main style={{ maxWidth: '1080px', margin: '0 auto', padding: '0 1.5rem 6rem', width: '100%', position: 'relative', zIndex: 1 }}>
         <AnimatePresence mode="wait">
+
+          {/* ════ LANDING ════════════════════════════ */}
           {appState === 'landing' && (
-            <motion.div 
-              key="landing"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6rem' }}
-            >
-              {/* Hero Section */}
-              <div style={{ textAlign: 'center', paddingTop: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid #38bdf8', padding: '0.5rem 1rem', borderRadius: '100px', marginBottom: '2rem', color: '#38bdf8', fontWeight: 'bold' }}>
-                  <Droplet size={16} /> Fluxo de Aprendizado Otimizado
-                </div>
-                <h2 style={{ fontSize: '4.5rem', fontWeight: 900, marginBottom: '1.5rem', color: 'white', lineHeight: 1.1, letterSpacing: '-1px' }}>
-                  Navegue pelo seu Edital <br/>
-                  <span style={{ 
-                    background: 'linear-gradient(to right, #38bdf8, #34d399, #818cf8)', 
-                    WebkitBackgroundClip: 'text', 
+            <motion.div key="landing" variants={pageIn} initial="initial" animate="animate" exit="exit">
+
+              {/* Hero */}
+              <section style={{ textAlign: 'center', paddingTop: '5.5rem', paddingBottom: '6rem', position: 'relative' }}>
+
+                {/* Glow submerso atrás do título */}
+                <div style={{
+                  position: 'absolute', top: '20%', left: '50%', transform: 'translateX(-50%)',
+                  width: '600px', height: '300px',
+                  background: 'radial-gradient(ellipse at center, rgba(0,180,220,0.1) 0%, transparent 70%)',
+                  pointerEvents: 'none', filter: 'blur(40px)',
+                }} />
+
+                {/* Badge */}
+                <motion.div variants={fadeUp} initial="initial" animate="animate" style={{ marginBottom: '1.75rem' }}>
+                  <span className="feature-badge">
+                    <Waves size={13} /> Navegue rumo à aprovação
+                  </span>
+                </motion.div>
+
+                {/* Título */}
+                <motion.h1
+                  className="hero-title"
+                  variants={fadeUp} initial="initial" animate="animate"
+                  style={{ marginBottom: '1.5rem' }}
+                >
+                  Seu edital virou<br />
+                  <span style={{
+                    background: 'linear-gradient(135deg, #00d4ff 0%, #2dd4bf 45%, #38bdf8 80%, #00d4ff 100%)',
+                    backgroundSize: '200% auto',
+                    WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
-                    textShadow: '0 0 40px rgba(56,189,248,0.3)'
-                  }}>Como uma Onda.</span>
-                </h2>
-                <p style={{ color: '#94a3b8', fontSize: '1.25rem', maxWidth: '750px', margin: '0 auto 3rem', lineHeight: 1.6 }}>
-                  A VibeStudy transforma o caos de páginas densas e leis secas em uma correnteza clara de metas diárias. 
-                  Confiável, analítica e guiada por uma frota de Inteligências Artificiais.
-                </p>
-                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                  <button 
-                    className="btn" 
-                    style={{ padding: '1.25rem 3rem', fontSize: '1.1rem', background: 'linear-gradient(135deg, #0284c7, #3b82f6)' }}
+                    backgroundClip: 'text',
+                    animation: 'oceanGradientMove 4s linear infinite',
+                  }}>
+                    sua rota de passagem.
+                  </span>
+                </motion.h1>
+
+                {/* Subtítulo */}
+                <motion.p
+                  variants={fadeUp} initial="initial" animate="animate"
+                  style={{ color: '#e2e8f0', fontSize: '1.1rem', maxWidth: '560px', margin: '0 auto 3rem', lineHeight: 1.75 }}
+                >
+                  Faça upload do PDF do seu edital e receba em minutos um cronograma
+                  inteligente — como uma correnteza que te leva direto à aprovação.
+                </motion.p>
+
+                {/* CTAs */}
+                <motion.div
+                  className="hero-buttons"
+                  variants={fadeUp} initial="initial" animate="animate"
+                  style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}
+                >
+                  <button
+                    id="cta-start" className="btn"
+                    style={{ padding: '0.9rem 2.25rem', fontSize: '1rem' }}
                     onClick={() => setAppState('login')}
                   >
-                    Acessar Plataforma
+                    Começar agora <ArrowRight size={16} />
                   </button>
-                  <button 
-                    className="btn" 
-                    style={{ padding: '1.25rem 3rem', fontSize: '1.1rem', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56,189,248,0.3)', color: '#38bdf8', boxShadow: 'none' }}
+                  <button
+                    id="cta-demo" className="btn"
+                    style={{
+                      padding: '0.9rem 2.25rem', fontSize: '1rem',
+                      background: 'transparent',
+                      border: '1px solid rgba(0,212,255,0.25)',
+                      color: '#7ee8ff', boxShadow: 'none',
+                    }}
                     onClick={handleLoadDemo}
                   >
-                    Testar Demo Aberto
+                    Ver demo grátis
                   </button>
-                </div>
-              </div>
+                </motion.div>
 
-              {/* Trust & Features Section */}
-              <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-                <h3 style={{ textAlign: 'center', fontSize: '2rem', color: 'white', marginBottom: '3rem' }}>A Tecnologia por Trás da Fluidez</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-                  
-                  <div className="glass-card day-card" style={{ padding: '2rem', borderTop: '2px solid #38bdf8' }}>
-                    <div style={{ background: 'rgba(56, 189, 248, 0.1)', width: '60px', height: '60px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                      <Compass size={32} color="#38bdf8" />
-                    </div>
-                    <h4 style={{ fontSize: '1.3rem', color: 'white', marginBottom: '1rem' }}>Sempre no Norte Correto</h4>
-                    <p style={{ color: '#94a3b8', lineHeight: 1.6 }}>Os editais de aprovação são vastos e confusos. Nossa inteligência encontra a bússola exata, cruzando sua carga horária com as matérias que representam o maior peso estatístico da banca.</p>
-                  </div>
-
-                  <div className="glass-card day-card" style={{ padding: '2rem', borderTop: '2px solid #34d399' }}>
-                    <div style={{ background: 'rgba(52, 211, 153, 0.1)', width: '60px', height: '60px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                      <Anchor size={32} color="#34d399" />
-                    </div>
-                    <h4 style={{ fontSize: '1.3rem', color: 'white', marginBottom: '1rem' }}>Ancoragem no Mercado</h4>
-                    <p style={{ color: '#94a3b8', lineHeight: 1.6 }}>Não basta ter um cronograma vazio. O VibeStudy procura ativamente os melhores cursinhos focados na sua área de concurso (Estratégia, Gran, Direção) e recomenda os materiais magnos que cobrem o seu edital perfeitamente.</p>
-                  </div>
-
-                  <div className="glass-card day-card" style={{ padding: '2rem', borderTop: '2px solid #a78bfa' }}>
-                    <div style={{ background: 'rgba(167, 139, 250, 0.1)', width: '60px', height: '60px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                      <ShieldCheck size={32} color="#a78bfa" />
-                    </div>
-                    <h4 style={{ fontSize: '1.3rem', color: 'white', marginBottom: '1rem' }}>Segurança & Privacidade</h4>
-                    <p style={{ color: '#94a3b8', lineHeight: 1.6 }}>Todas as informações enviadas e calculadas via API Neural obedecem a padrões rigorosos. Seu estilo de vida e dados de tempo são expurgados da rede neural após a geração do micro-cronograma final.</p>
-                  </div>
-
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {appState === 'login' && (
-            <motion.div 
-              key="login"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              style={{ width: '100%', display: 'flex', justifyContent: 'center', paddingTop: '4rem' }}
-            >
-              <div className="glass-card" style={{ width: '100%', maxWidth: '450px', padding: '3rem 2.5rem' }}>
-                <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.5rem', color: 'white', textAlign: 'center' }}>
-                  Acesse o Mar.
-                </h2>
-                <p style={{ color: '#94a3b8', textAlign: 'center', marginBottom: '3rem' }}>Conecte-se para mergulhar no seu cronograma.</p>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#bae6fd', fontWeight: 600, marginBottom: '0.5rem' }}>
-                      <Mail size={16} /> E-mail Profissional
-                    </label>
-                    <input type="email" placeholder="nome@exemplo.com" style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', color: 'white', fontSize: '1rem' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#bae6fd', fontWeight: 600, marginBottom: '0.5rem' }}>
-                      <Lock size={16} /> Senha Segura
-                    </label>
-                    <input type="password" placeholder="••••••••" style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.05)', color: 'white', fontSize: '1rem' }} />
-                  </div>
-                  <button 
-                    className="btn" 
-                    style={{ padding: '1.25rem', fontSize: '1.1rem', background: 'linear-gradient(135deg, #0284c7, #3b82f6)', marginTop: '1rem' }}
-                    onClick={() => setAppState('upload')}
-                  >
-                    Mergulhar
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {appState === 'upload' && (
-            <motion.div 
-              key="upload"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: '2rem' }}
-            >
-              <h2 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '1rem', color: 'white', textAlign: 'center' }}>
-                Área de <span style={{ color: 'var(--primary-color)' }}>Ancoragem</span>
-              </h2>
-              <p style={{ color: '#94a3b8', fontSize: '1.1rem', maxWidth: '600px', textAlign: 'center', marginBottom: '3rem' }}>
-                Faça o upload do documento bruto do seu edital de concurso. Nossa rede de Agentes de IA vai mastigar e converter em plano focado.
-              </p>
-
-              {/* Upload Engine Box */}
-              <div className="glass-card" style={{ width: '100%', maxWidth: '750px', padding: '2.5rem', position: 'relative', border: '1px solid rgba(56, 189, 248, 0.3)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 30px rgba(56, 189, 248, 0.1)' }}>
-                <div style={{ position: 'absolute', top: '-1px', left: '10%', width: '80%', height: '2px', background: 'linear-gradient(90deg, transparent, #38bdf8, transparent)' }}></div>
-                
-                <div 
-                  className="file-drop-area"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={handleDrop}
-                  style={{ marginBottom: '2rem', background: file ? 'rgba(56, 189, 248, 0.05)' : 'rgba(0,0,0,0.2)' }}
+                {/* Mini stats */}
+                <motion.div
+                  variants={fadeUp} initial="initial" animate="animate"
+                  style={{ display: 'flex', gap: '2.5rem', justifyContent: 'center', marginTop: '3.5rem', flexWrap: 'wrap' }}
                 >
+                  {[
+                    { value: '+3.400', label: 'Concurseiros' },
+                    { value: '94%',    label: 'Taxa de progresso' },
+                    { value: '< 3min', label: 'Para gerar o plano' },
+                  ].map((s, i) => (
+                    <div key={i} style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#00d4ff', lineHeight: 1 }}>{s.value}</p>
+                      <p style={{ color: '#cbd5e1', fontSize: '0.8rem', marginTop: '0.25rem' }}>{s.label}</p>
+                    </div>
+                  ))}
+                </motion.div>
+              </section>
+
+              {/* Wave divider visual */}
+              <div style={{ textAlign: 'center', margin: '0 0 4rem', opacity: 0.15 }}>
+                <svg viewBox="0 0 800 40" style={{ width: '100%', maxWidth: '600px' }} fill="none">
+                  <path d="M0,20 C100,40 200,0 300,20 C400,40 500,0 600,20 C700,40 800,10 800,20" stroke="#00d4ff" strokeWidth="2" fill="none" />
+                </svg>
+              </div>
+
+              {/* Features */}
+              <section style={{ marginBottom: '5rem' }}>
+                <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '2.5px', textTransform: 'uppercase', marginBottom: '2.5rem' }}>
+                  Como funciona
+                </p>
+                <motion.div
+                  variants={stagger} initial="initial" animate="animate"
+                  style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}
+                >
+                  {[
+                    {
+                      icon: <Target size={22} color="#00d4ff" />, bg: 'rgba(0,212,255,0.07)',
+                      border: 'rgba(0,212,255,0.2)', accent: '#00d4ff',
+                      title: 'Foco no que a banca cobra',
+                      desc: 'Nossa IA decodifica o padrão da sua banca (Cespe, FCC, FGV) e mapeia os pontos com maior incidência histórica para o seu cargo.',
+                    },
+                    {
+                      icon: <Layers size={22} color="#2dd4bf" />, bg: 'rgba(45,212,191,0.07)',
+                      border: 'rgba(45,212,191,0.2)', accent: '#2dd4bf',
+                      title: 'Curadoria de cursos direcionada',
+                      desc: 'Recomendamos automaticamente as aulas certas nas maiores plataformas, filtradas para o seu edital e perfíl de banca.',
+                    },
+                    {
+                      icon: <Cpu size={22} color="#38bdf8" />, bg: 'rgba(56,189,248,0.07)',
+                      border: 'rgba(56,189,248,0.2)', accent: '#38bdf8',
+                      title: 'Cronograma vivo e adaptável',
+                      desc: 'Conforme você avança, o algoritmo ajusta densidades. Um plano que flui com você até o dia da prova.',
+                    },
+                  ].map((f, i) => (
+                    <motion.div key={i} variants={fadeUp} className="glass-card"
+                      style={{ padding: '1.75rem', borderTop: `2px solid ${f.border}` }}>
+                      <div style={{
+                        width: '46px', height: '46px', borderRadius: '12px',
+                        background: f.bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        marginBottom: '1.25rem', border: `1px solid ${f.border}`,
+                      }}>
+                        {f.icon}
+                      </div>
+                      <h3 style={{ color: '#ffffff', fontSize: '1rem', fontWeight: 700, marginBottom: '0.65rem' }}>{f.title}</h3>
+                      <p style={{ color: '#e2e8f0', fontSize: '0.88rem', lineHeight: 1.7 }}>{f.desc}</p>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </section>
+
+              {/* Social Proof */}
+              <section style={{ marginBottom: '4rem' }}>
+                <h2 style={{ textAlign: 'center', fontSize: '1.55rem', fontWeight: 700, color: '#ffffff', marginBottom: '0.4rem' }}>
+                  Quem navegou, chegou à margem.
+                </h2>
+                <p style={{ textAlign: 'center', color: '#cbd5e1', marginBottom: '2.25rem', fontSize: '0.88rem' }}>
+                  Histórias reais de quem usou o VibeStudy.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
+                  {[
+                    {
+                      quote: '"Reduziu minha ansiedade ao zero. Ver o TSE Unificado quebrado em cartões diários fez eu finalmente parar de procrastinar."',
+                      author: 'Marcos T.', role: 'Aprovado — Analista Judiciário', initial: 'M', color: '#00d4ff',
+                    },
+                    {
+                      quote: '"Tentava fechar a Receita Federal na força bruta. Com o VibeStudy recalibrando meu ciclo, ganhei horas de folga no fim de semana."',
+                      author: 'Carolina S.', role: 'Aprovada — Auditora Fiscal', initial: 'C', color: '#2dd4bf',
+                    },
+                  ].map((t, i) => (
+                    <motion.div key={i} variants={fadeUp} initial="initial" animate="animate"
+                      className="glass-card" style={{ padding: '1.75rem' }}>
+                      <div style={{ display: 'flex', gap: '2px', marginBottom: '0.9rem' }}>
+                        {[...Array(5)].map((_, s) => <Star key={s} size={13} fill="#00d4ff" color="#00d4ff" />)}
+                      </div>
+                      <p style={{ color: '#e2e8f0', fontSize: '0.88rem', lineHeight: 1.75, fontStyle: 'italic', marginBottom: '1.4rem' }}>
+                        {t.quote}
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{
+                          width: '34px', height: '34px', borderRadius: '50%',
+                          background: `${t.color}15`, border: `1px solid ${t.color}30`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontWeight: 700, color: t.color, fontSize: '0.85rem',
+                        }}>
+                          {t.initial}
+                        </div>
+                        <div>
+                          <p style={{ color: '#ffffff', fontWeight: 600, fontSize: '0.88rem', margin: 0 }}>{t.author}</p>
+                          <p style={{ color: '#cbd5e1', fontSize: '0.76rem', margin: 0 }}>{t.role}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </section>
+
+            </motion.div>
+          )}
+
+          {/* ════ LOGIN ══════════════════════════════ */}
+          {appState === 'login' && (
+            <motion.div key="login" variants={pageIn} initial="initial" animate="animate" exit="exit"
+              style={{ display: 'flex', justifyContent: 'center', paddingTop: '5rem' }}>
+              <div className="glass-card" style={{ width: '100%', maxWidth: '400px', padding: '2.5rem' }}>
+                <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                  <VibeVectorLogo />
+                  <h2 style={{ fontSize: '1.7rem', fontWeight: 800, color: '#ffffff', margin: '0.9rem 0 0.2rem' }}>
+                    Mergulhe de volta
+                  </h2>
+                  <p style={{ color: '#cbd5e1', fontSize: '0.85rem' }}>Entre para navegar pelo seu cronograma.</p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+                  <div>
+                    <label style={labelStyle}><Mail size={11} style={{ display:'inline', marginRight:'4px' }} />E-mail</label>
+                    <input id="login-email" type="email" placeholder="nome@exemplo.com" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}><Lock size={11} style={{ display:'inline', marginRight:'4px' }} />Senha</label>
+                    <input id="login-password" type="password" placeholder="••••••••" style={inputStyle} />
+                  </div>
+                  <button id="login-submit" className="btn"
+                    style={{ width:'100%', padding:'0.9rem', marginTop:'0.5rem' }}
+                    onClick={() => setAppState('upload')}>
+                    Entrar na plataforma <ArrowRight size={16} />
+                  </button>
+                  <p style={{ textAlign:'center', color:'#94a3b8', fontSize:'0.78rem' }}>
+                    Sem conta?{' '}
+                    <span style={{ color:'#00d4ff', cursor:'pointer', fontWeight:600 }} onClick={() => setAppState('upload')}>
+                      Criar gratuitamente
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ════ UPLOAD ═════════════════════════════ */}
+          {appState === 'upload' && (
+            <motion.div key="upload" variants={pageIn} initial="initial" animate="animate" exit="exit"
+              style={{ display:'flex', flexDirection:'column', alignItems:'center', paddingTop:'3.5rem' }}>
+              <div style={{ textAlign:'center', marginBottom:'2.25rem' }}>
+                <span className="feature-badge" style={{ marginBottom:'1.1rem', display:'inline-flex' }}>
+                  <UploadCloud size={13} /> Upload do Edital
+                </span>
+                <h2 style={{ fontSize:'2rem', fontWeight:800, color:'#ffffff', marginTop:'1rem', marginBottom:'0.4rem', letterSpacing:'-0.5px' }}>
+                  Ancore seu edital aqui
+                </h2>
+                <p style={{ color:'#cbd5e1', maxWidth:'480px', fontSize:'0.9rem', lineHeight:1.7 }}>
+                  Deixe a correnteza de IA trabalhar — em minutos seu plano de estudos estará pronto.
+                </p>
+              </div>
+
+              <div className="glass-card" style={{ width:'100%', maxWidth:'660px', padding:'2rem' }}>
+                {/* Drop Zone */}
+                <div className="file-drop-area"
+                  onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}
+                  style={{
+                    marginBottom:'1.5rem',
+                    background: file ? 'rgba(45,212,191,0.04)' : undefined,
+                    borderColor: file ? 'rgba(45,212,191,0.35)' : undefined,
+                  }}>
                   {!file ? (
                     <>
-                      <UploadCloud size={48} color="var(--primary-color)" style={{ marginBottom: '1rem' }} />
-                      <h3 style={{ marginBottom: '0.5rem', fontSize: '1.3rem' }}>Ancore seu Edital em PDF aqui</h3>
-                      <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '1.5rem' }}>E deixe a maré da IA organizar tudo.</p>
-                      <input 
-                        type="file" 
-                        id="file-upload" 
-                        accept=".pdf" 
-                        style={{ display: 'none' }} 
-                        onChange={handleFileChange}
-                      />
-                      <label htmlFor="file-upload" className="btn" style={{ background: 'var(--primary-color)', color: '#fff', padding: '0.75rem 2rem' }}>
-                        Navegar Arquivos
+                      <div style={{ marginBottom:'0.75rem' }}>
+                        <UploadCloud size={38} color="#00d4ff" style={{ opacity:0.75 }} />
+                      </div>
+                      <p style={{ color:'#ffffff', fontWeight:600, marginBottom:'0.35rem' }}>Arraste o PDF aqui</p>
+                      <p style={{ color:'#cbd5e1', fontSize:'0.82rem', marginBottom:'1.25rem' }}>ou clique para selecionar</p>
+                      <input type="file" id="file-upload" accept=".pdf" style={{ display:'none' }} onChange={handleFileChange} />
+                      <label htmlFor="file-upload" className="btn" style={{ padding:'0.55rem 1.4rem', fontSize:'0.82rem' }}>
+                        Selecionar arquivo
                       </label>
                     </>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <div style={{ background: 'rgba(5, 150, 105, 0.1)', padding: '1.5rem', borderRadius: '50%', marginBottom: '1rem', boxShadow: '0 0 20px var(--success-glow)' }}>
-                        <FileText size={40} color="var(--success-color)" />
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                      <div style={{
+                        width:'52px', height:'52px', borderRadius:'14px',
+                        background:'rgba(45,212,191,0.1)', border:'1px solid rgba(45,212,191,0.2)',
+                        display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'0.7rem',
+                      }}>
+                        <FileText size={26} color="#2dd4bf" />
                       </div>
-                      <h3 style={{ color: 'var(--success-color)', fontSize: '1.2rem' }}>{file.name}</h3>
-                      <p style={{ color: '#94a3b8', fontSize: '0.875rem', margin: '0.5rem 0 1.5rem' }}>
-                        {(file.size / 1024 / 1024).toFixed(2)} MB - Preparado para extração
+                      <p style={{ color:'#2dd4bf', fontWeight:600, marginBottom:'0.2rem' }}>{file.name}</p>
+                      <p style={{ color:'#cbd5e1', fontSize:'0.78rem', marginBottom:'0.9rem' }}>
+                        {(file.size/1024/1024).toFixed(2)} MB — pronto para processar
                       </p>
-                      <button className="btn" style={{ background: 'transparent', border: '1px solid var(--danger-color)', color: 'var(--danger-color)', boxShadow: 'none', padding: '0.5rem 1rem' }} onClick={() => setFile(null)}>
-                        Trocar Arquivo
+                      <button className="btn" onClick={() => setFile(null)}
+                        style={{ padding:'0.35rem 0.9rem', fontSize:'0.78rem', background:'transparent', border:'1px solid rgba(248,113,113,0.35)', color:'#f87171', boxShadow:'none' }}>
+                        Trocar arquivo
                       </button>
                     </div>
                   )}
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', textAlign: 'left' }}>
+                {/* Config */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1.1rem', marginBottom:'1.5rem' }}>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#bae6fd', fontWeight: 600, fontSize: '0.9rem' }}>Horas Livres por Dia</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(0,0,0,0.3)', padding: '0.5rem 1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <input 
-                        type="range" min="1" max="12" step="0.5" value={hours} 
-                        onChange={(e) => setHours(parseFloat(e.target.value))}
-                        style={{ flex: 1, accentColor: 'var(--primary-color)' }}
-                      />
-                      <span style={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '1.1rem', minWidth: '40px', textAlign: 'right' }}>{hours}h</span>
+                    <label style={labelStyle}>Horas por dia</label>
+                    <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', background:'rgba(0,10,20,0.4)', padding:'0.55rem 0.9rem', borderRadius:'10px', border:'1px solid rgba(0,212,255,0.08)' }}>
+                      <input type="range" min="1" max="12" step="0.5" value={hours}
+                        onChange={(e) => setHours(parseFloat(e.target.value))} style={{ flex:1 }} />
+                      <span style={{ color:'#00d4ff', fontWeight:700, minWidth:'36px', textAlign:'right' }}>{hours}h</span>
                     </div>
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', color: '#bae6fd', fontWeight: 600, fontSize: '0.9rem' }}>Data da Prova (Opcional)</label>
-                    <input 
-                      type="date"
-                      value={testDate}
-                      onChange={(e) => setTestDate(e.target.value)}
-                      style={{ 
-                        width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', background: 'rgba(0,0,0,0.3)', 
-                        border: '1px solid rgba(255,255,255,0.05)', color: 'white', fontSize: '0.95rem',
-                        fontFamily: 'inherit', colorScheme: 'dark'
-                      }}
-                    />
+                    <label style={labelStyle}>Data da prova</label>
+                    <input type="date" value={testDate} onChange={(e) => setTestDate(e.target.value)}
+                      style={{ ...inputStyle, colorScheme:'dark' }} />
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem', marginTop: '2.5rem' }}>
-                  <button 
-                    className="btn" 
-                    style={{ flex: 1, padding: '1.25rem', fontSize: '1.1rem', background: 'linear-gradient(135deg, #0284c7, #3b82f6)' }}
-                    disabled={!file}
-                    onClick={handleUpload}
-                  >
-                    <Cpu size={18} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} /> 
-                    Processar VibeStudy
-                  </button>
-                </div>
+                <button id="upload-submit" className="btn"
+                  style={{ width:'100%', padding:'0.9rem', fontSize:'1rem' }}
+                  disabled={!file} onClick={handleUpload}>
+                  <Cpu size={17} /> Gerar plano de estudos
+                </button>
               </div>
             </motion.div>
           )}
 
+          {/* ════ PROCESSING ═════════════════════════ */}
           {appState === 'processing' && (
-            <motion.div 
-              key="processing"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              className="glass-card"
-              style={{ maxWidth: '500px', margin: '4rem auto', textAlign: 'center', padding: '4rem 2rem' }}
-            >
-              <div style={{ display: 'inline-block', position: 'relative', marginBottom: '2rem' }}>
-                <motion.div 
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                  style={{ 
-                    width: '80px', height: '80px', 
-                    borderRadius: '50%', 
-                    border: '4px solid rgba(59, 130, 246, 0.2)',
-                    borderTopColor: 'var(--primary-color)'
-                  }}
-                />
-                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontWeight: 'bold', fontSize: '1.2rem' }}>
-                  {progress}%
+            <motion.div key="processing" variants={pageIn} initial="initial" animate="animate" exit="exit"
+              style={{ display:'flex', justifyContent:'center', paddingTop:'5rem' }}>
+              <div className="glass-card" style={{ maxWidth:'440px', width:'100%', padding:'3.5rem 2.5rem', textAlign:'center' }}>
+                {/* Spinner oceânico */}
+                <div style={{ position:'relative', width:'88px', height:'88px', margin:'0 auto 2.25rem' }}>
+                  <motion.div animate={{ rotate: 360 }} transition={{ repeat:Infinity, duration:3, ease:'linear' }}
+                    style={{ position:'absolute', inset:0, border:'2.5px solid rgba(0,212,255,0.12)', borderTopColor:'#00d4ff', borderRadius:'50%' }} />
+                  <motion.div animate={{ rotate: -360 }} transition={{ repeat:Infinity, duration:2, ease:'linear' }}
+                    style={{ position:'absolute', inset:'14px', border:'2.5px solid rgba(45,212,191,0.12)', borderTopColor:'#2dd4bf', borderRadius:'50%' }} />
+                  <motion.div animate={{ rotate: 360 }} transition={{ repeat:Infinity, duration:1.2, ease:'linear' }}
+                    style={{ position:'absolute', inset:'28px', border:'2px solid rgba(56,189,248,0.15)', borderTopColor:'#38bdf8', borderRadius:'50%' }} />
+                  <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:'0.95rem', color:'#00d4ff' }}>
+                    {progress}%
+                  </div>
                 </div>
-              </div>
-              
-              <h2 style={{ marginBottom: '0.5rem' }}>Analisando Edital</h2>
-              <p style={{ color: '#94a3b8' }}>{statusMessage}</p>
-              
-              <div className="progress-bar-container" style={{ marginTop: '2rem', background: 'rgba(0,0,0,0.3)' }}>
-                <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+
+                <h2 style={{ fontSize:'1.35rem', fontWeight:700, color:'#ffffff', marginBottom:'0.45rem' }}>
+                  Mergulhando no edital
+                </h2>
+                <p style={{ color:'#cbd5e1', fontSize:'0.88rem', marginBottom:'2rem', minHeight:'1.4em' }}>
+                  {statusMessage}
+                </p>
+                <div className="progress-bar-container">
+                  <div className="progress-bar-fill" style={{ width:`${progress}%` }} />
+                </div>
               </div>
             </motion.div>
           )}
 
+          {/* ════ DASHBOARD ══════════════════════════ */}
           {appState === 'dashboard' && dashboardData && (
-            <motion.div 
-              key="dashboard"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ staggerChildren: 0.1 }}
-            >
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '1rem', borderRadius: '12px' }}>
-                    <Calendar color="var(--primary-color)" />
-                  </div>
-                  <div>
-                    <div style={{ color: '#94a3b8', fontSize: '0.875rem' }}>Duração Total</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{dashboardData.total_days} dias</div>
-                  </div>
-                </div>
-                
-                <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '12px' }}>
-                    <Clock color="var(--success-color)" />
-                  </div>
-                  <div>
-                    <div style={{ color: '#94a3b8', fontSize: '0.875rem' }}>Ritmo</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{dashboardData.daily_hours}h / dia</div>
-                  </div>
-                </div>
+            <motion.div key="dashboard" variants={stagger} initial="initial" animate="animate" style={{ paddingTop:'2.5rem' }}>
 
-                <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <button 
-                    className="btn" 
-                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--card-border)' }}
-                    onClick={handleReplan}
-                    disabled={isReplanning}
-                  >
-                    <RefreshCw size={18} className={isReplanning ? "spin-anim" : ""} />
-                    {isReplanning ? "Recalculando..." : "Caiu no atraso? Replanejar"}
-                  </button>
-                  <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem', textAlign: 'center' }}>
-                    Ajuste automático para evitar sobrecarga.
-                  </p>
-                </div>
-              </div>
-              {/* Recommended Courses Section (Moved up for Monetization Business Core) */}
-              {dashboardData.recommended_courses && dashboardData.recommended_courses.length > 0 && (
-                <div style={{ marginTop: '0rem', marginBottom: '4rem' }}>
-                  <h2 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: 'white', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ background: 'var(--primary-color)', padding: '0.5rem', borderRadius: '12px', boxShadow: '0 0 15px var(--primary-color)' }}>
-                      <FileText size={24} color="white" />
+              {/* Stats */}
+              <motion.div variants={fadeUp}
+                style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:'1rem', marginBottom:'2.5rem' }}>
+                {[
+                  { icon:<Calendar size={19} color="#00d4ff" />, bg:'rgba(0,212,255,0.08)', label:'Duração total',  value:`${dashboardData.total_days} dias` },
+                  { icon:<Clock    size={19} color="#2dd4bf" />, bg:'rgba(45,212,191,0.08)', label:'Ritmo diário',  value:`${dashboardData.daily_hours}h / dia` },
+                  { icon:<TrendingUp size={19} color="#38bdf8" />, bg:'rgba(56,189,248,0.08)', label:'Total de horas', value:`${dashboardData.total_estimated_hours}h` },
+                ].map((s, i) => (
+                  <div key={i} className="glass-card" style={{ padding:'1.1rem 1.25rem', display:'flex', alignItems:'center', gap:'0.9rem' }}>
+                    <div style={{ width:'40px', height:'40px', borderRadius:'10px', background:s.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      {s.icon}
                     </div>
-                    Curadoria Estratégica Inversa (O Core)
-                  </h2>
-                  <p style={{ color: '#94a3b8', fontSize: '1rem', marginBottom: '2rem', marginTop: '-0.5rem' }}>
-                    Baseado no seu edital, estas são as plataformas que indicamos pra fechar a grade.
-                  </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                    <div>
+                      <p style={{ color:'#94a3b8', fontSize:'0.72rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px' }}>{s.label}</p>
+                      <p style={{ color:'#ffffff', fontSize:'1.25rem', fontWeight:700 }}>{s.value}</p>
+                    </div>
+                  </div>
+                ))}
+                <div className="glass-card" style={{ padding:'1.1rem 1.25rem', display:'flex', flexDirection:'column', justifyContent:'center' }}>
+                  <button className="btn"
+                    style={{ background:'transparent', border:'1px solid rgba(0,212,255,0.18)', boxShadow:'none', fontSize:'0.82rem', padding:'0.55rem 0.9rem', color:'#7ee8ff' }}
+                    onClick={handleReplan} disabled={isReplanning}>
+                    <RefreshCw size={14} className={isReplanning ? 'spin-anim' : ''} />
+                    {isReplanning ? 'Recalculando...' : 'Replanejar ciclo'}
+                  </button>
+                  <p style={{ color:'#94a3b8', fontSize:'0.72rem', textAlign:'center', marginTop:'0.4rem' }}>Ajuste automático sem sobrecarga</p>
+                </div>
+              </motion.div>
+
+              {/* Cursos Recomendados */}
+              {dashboardData.recommended_courses?.length > 0 && (
+                <motion.section variants={fadeUp} style={{ marginBottom:'3.5rem' }}>
+                  <OceanSectionHeading icon={<FileText size={17} color="white" />} bg="#007ab8" title="Curadoria estratégica" sub="Plataformas selecionadas com base no seu edital" />
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(250px, 1fr))', gap:'1.1rem' }}>
                     {dashboardData.recommended_courses.map((course, idx) => (
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.3 + idx * 0.1 }}
-                        className="glass-card" 
-                        key={idx} 
-                        style={{ borderTop: '4px solid #38bdf8', position: 'relative', overflow: 'hidden' }}
-                      >
-                        <div style={{ position: 'absolute', top: 0, right: 0, background: 'rgba(56, 189, 248, 0.2)', padding: '0.5rem 1rem', borderBottomLeftRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', color: '#e0f2fe' }}>
-                          RECOMENDADO
-                        </div>
-                        <h4 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: '#e0f2fe', paddingRight: '4rem' }}>{course.title}</h4>
-                        <p style={{ color: '#38bdf8', fontWeight: 'bold', marginBottom: '1rem', fontSize: '0.875rem' }}>{course.platform}</p>
-                        <p style={{ color: '#cbd5e1', lineHeight: 1.5, fontSize: '0.95rem' }}>{course.description}</p>
-                        
-                        <button className="btn" style={{ width: '100%', marginTop: '1.5rem', padding: '0.75rem', fontSize: '0.9rem', background: 'transparent', border: '1px solid var(--primary-color)', color: 'var(--primary-color)' }}>
-                          Acessar Oferta
+                      <motion.div key={idx} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:idx*0.08 }}
+                        className="glass-card" style={{ padding:'1.4rem', borderTop:`2px solid ${OCEAN_PALETTE[idx % OCEAN_PALETTE.length]}` }}>
+                        <span style={{ fontSize:'0.68rem', fontWeight:700, color:OCEAN_PALETTE[idx % OCEAN_PALETTE.length], letterSpacing:'1.2px', textTransform:'uppercase' }}>
+                          {course.platform}
+                        </span>
+                        <h4 style={{ color:'#ffffff', fontSize:'0.97rem', fontWeight:700, margin:'0.4rem 0 0.65rem', lineHeight:1.3 }}>{course.title}</h4>
+                        <p style={{ color:'#e2e8f0', fontSize:'0.83rem', lineHeight:1.65, marginBottom:'1.1rem' }}>{course.description}</p>
+                        <button className="btn"
+                          style={{ width:'100%', padding:'0.55rem', fontSize:'0.8rem', background:'transparent', border:`1px solid ${OCEAN_PALETTE[idx % OCEAN_PALETTE.length]}30`, color:OCEAN_PALETTE[idx % OCEAN_PALETTE.length], boxShadow:'none' }}>
+                          Acessar oferta <ArrowRight size={12} />
                         </button>
                       </motion.div>
                     ))}
                   </div>
-                </div>
+                </motion.section>
               )}
-              {/* Visão Holística Section */}
-              {dashboardData.knowledge_areas && dashboardData.knowledge_areas.length > 0 && (() => {
-                const dynamicKnowledgeAreas = dashboardData.knowledge_areas.map(ka => {
-                  let hoursReduced = 0;
-                  dashboardData.daily_plan.forEach(day => {
-                    day.tasks.forEach(t => {
-                       // Se a tarefa foi completa, reduzimos o volume da bolha equivalente à duração dela
-                       if (completedTasks.has(t.id) && t.area === ka.name) {
-                          hoursReduced += t.duration;
-                       }
-                    });
-                  });
-                  return { ...ka, total_hours: Math.max(0, ka.total_hours - hoursReduced) };
+
+              {/* Visão Holística */}
+              {dashboardData.knowledge_areas?.length > 0 && (() => {
+                const dynamic = dashboardData.knowledge_areas.map(ka => {
+                  let r = 0;
+                  dashboardData.daily_plan.forEach(day => day.tasks.forEach(t => {
+                    if (completedTasks.has(t.id) && t.area === ka.name) r += t.duration;
+                  }));
+                  return { ...ka, total_hours: Math.max(0, ka.total_hours - r) };
                 }).filter(ka => ka.total_hours > 0);
 
-                if (dynamicKnowledgeAreas.length === 0) {
-                  return (
-                    <div style={{ marginBottom: '4rem', textAlign: 'center' }}>
-                      <h2 style={{ fontSize: '2rem', color: '#34d399' }}>Visão Holística Zerada! Você completou tudo! 🎉</h2>
-                    </div>
-                  );
-                }
+                if (dynamic.length === 0) return (
+                  <div style={{ textAlign:'center', padding:'2rem', marginBottom:'3rem' }}>
+                    <CheckCircle size={46} color="#2dd4bf" style={{ marginBottom:'0.75rem' }} />
+                    <h3 style={{ color:'#2dd4bf', fontSize:'1.4rem' }}>Tudo concluído! 🎉</h3>
+                  </div>
+                );
 
                 return (
-                  <div style={{ marginBottom: '4rem' }}>
-                    <h2 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: 'white', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div style={{ background: 'var(--success-color)', padding: '0.5rem', borderRadius: '12px' }}>
-                        <Calendar size={24} color="white" />
-                      </div>
-                      Visão Holística (Remanescente)
-                    </h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-                      
-                      {/* Bubble Chart */}
-                      <div className="glass-card" style={{ height: '400px', display: 'flex', flexDirection: 'column' }}>
-                        <h3 style={{ color: '#38bdf8', marginBottom: '1rem' }}>Volume Faltante (Conhecimento Alvo)</h3>
-                        <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '1rem' }}>Complete dias e veja as bolhas murcharem sumindo conforme adquire conhecimento!</p>
-                        <div style={{ flex: 1, position: 'relative' }}>
-                          <ResponsiveContainer width="100%" height="100%">
-                            <ScatterChart margin={{ top: 50, right: 50, bottom: 50, left: 50 }}>
-                              <XAxis type="number" dataKey="x" name="peso_x" hide domain={['dataMin - 15', 'dataMax + 15']} />
-                              <YAxis type="number" dataKey="y" name="peso_y" hide domain={['dataMin - 15', 'dataMax + 15']} />
-                              <ZAxis type="number" dataKey="total_hours" range={[0, 6000]} name="horas" />
-                              <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-                              <Scatter 
-                                name="Matérias" 
-                                data={dynamicKnowledgeAreas.map((ka, i) => {
-                                  const angle = (i / dynamicKnowledgeAreas.length) * Math.PI * 2;
-                                  return { 
-                                    ...ka, 
-                                    x: Math.cos(angle) * (20 + Math.random() * 10), 
-                                    y: Math.sin(angle) * (20 + Math.random() * 10) 
-                                  };
-                                })} 
-                              >
-                                {dynamicKnowledgeAreas.map((entry, index) => {
-                                  const colors = ['#38bdf8', '#818cf8', '#34d399', '#f472b6', '#a78bfa', '#2dd4bf'];
-                                  return (
-                                    <Cell 
-                                      key={`cell-${index}`} 
-                                      fill={colors[index % colors.length]} 
-                                      opacity={0.85} 
-                                      style={{ filter: `drop-shadow(0px 0px 12px ${colors[index % colors.length]}66)` }}
-                                    />
-                                  );
-                                })}
+                  <motion.section variants={fadeUp} style={{ marginBottom:'3.5rem' }}>
+                    <OceanSectionHeading icon={<Compass size={17} color="white" />} bg="#0b7a6b" title="Visão holística" sub="Volume de estudo restante por área" />
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(290px, 1fr))', gap:'1.1rem' }}>
+                      <div className="glass-card" style={{ padding:'1.4rem', minHeight:'320px', display:'flex', flexDirection:'column' }}>
+                        <p style={{ color:'#cbd5e1', fontSize:'0.8rem', marginBottom:'0.5rem' }}>Complete dias e as bolhas murcham.</p>
+                        <div style={{ flex:1 }}>
+                          <ResponsiveContainer width="100%" height={270}>
+                            <ScatterChart margin={{ top:30, right:30, bottom:30, left:30 }}>
+                              <XAxis type="number" dataKey="x" hide domain={['dataMin - 15','dataMax + 15']} />
+                              <YAxis type="number" dataKey="y" hide domain={['dataMin - 15','dataMax + 15']} />
+                              <ZAxis type="number" dataKey="total_hours" range={[0, 5000]} />
+                              <Tooltip content={<CustomTooltip />} cursor={false} />
+                              <Scatter data={dynamic.map((ka, i) => {
+                                const a = (i / dynamic.length) * Math.PI * 2;
+                                return { ...ka, x: Math.cos(a) * 25, y: Math.sin(a) * 25 };
+                              })}>
+                                {dynamic.map((_, idx) => (
+                                  <Cell key={idx} fill={OCEAN_PALETTE[idx % OCEAN_PALETTE.length]} opacity={0.82}
+                                    style={{ filter:`drop-shadow(0 0 8px ${OCEAN_PALETTE[idx % OCEAN_PALETTE.length]}99)` }} />
+                                ))}
                               </Scatter>
                             </ScatterChart>
                           </ResponsiveContainer>
                         </div>
                       </div>
-
-                      {/* Descriptions */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '400px', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                        {dynamicKnowledgeAreas.map((ka, idx) => (
-                          <div key={idx} className="glass-card" style={{ padding: '1.5rem', borderLeft: '4px solid #10b981' }}>
-                            <h4 style={{ color: '#10b981', marginBottom: '0.5rem', fontSize: '1.1rem' }}>{ka.name}</h4>
-                            <p style={{ color: '#cbd5e1', fontSize: '0.9rem', lineHeight: 1.5 }}>{ka.description}</p>
-                            <div style={{ marginTop: '0.75rem', color: '#38bdf8', fontWeight: 'bold', fontSize: '0.8rem' }}>
-                              Falta: {ka.total_hours}H
+                      <div style={{ display:'flex', flexDirection:'column', gap:'0.65rem', maxHeight:'320px', overflowY:'auto' }}>
+                        {dynamic.map((ka, idx) => (
+                          <div key={idx} className="glass-card"
+                            style={{ padding:'1rem 1.15rem', borderLeft:`3px solid ${OCEAN_PALETTE[idx % OCEAN_PALETTE.length]}` }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.2rem' }}>
+                              <h4 style={{ color:'#ffffff', fontSize:'0.87rem', fontWeight:700 }}>{ka.name}</h4>
+                              <span style={{ color:OCEAN_PALETTE[idx % OCEAN_PALETTE.length], fontWeight:700, fontSize:'0.78rem' }}>{ka.total_hours}h</span>
                             </div>
+                            <p style={{ color:'#cbd5e1', fontSize:'0.78rem', lineHeight:1.55 }}>{ka.description}</p>
                           </div>
                         ))}
                       </div>
-
                     </div>
-                  </div>
+                  </motion.section>
                 );
               })()}
 
-              {/* Gantt / Cronograma Visual Chart */}
+              {/* Gantt */}
               {(() => {
-                const ganttData = dashboardData.daily_plan.map(day => {
-                  const row = { name: `Dia ${day.day}`, activeTasksCount: 0 };
-                  day.tasks.forEach(t => {
-                    if (!completedTasks.has(t.id)) {
-                       row[t.title] = t.duration;
-                       row.activeTasksCount++;
-                    }
-                  });
+                const gantt = dashboardData.daily_plan.map(day => {
+                  const row = { name:`Dia ${day.day}`, _n:0 };
+                  day.tasks.forEach(t => { if (!completedTasks.has(t.id)) { row[t.title] = t.duration; row._n++; } });
                   return row;
-                }).filter(r => r.activeTasksCount > 0);
-                
-                if (ganttData.length === 0) return null;
-
+                }).filter(r => r._n > 0);
+                if (gantt.length === 0) return null;
                 const allTasks = Array.from(new Set(dashboardData.daily_plan.flatMap(d => d.tasks.map(t => t.title))));
-                const colors = ['#38bdf8', '#10b981', '#6366f1', '#f43f5e', '#f59e0b', '#8b5cf6'];
-
                 return (
-                  <div style={{ marginBottom: '4rem' }}>
-                    <h2 style={{ fontSize: '2rem', marginBottom: '1.5rem', color: 'white', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div style={{ background: '#6366f1', padding: '0.5rem', borderRadius: '12px' }}>
-                        <BarChart2 size={24} color="white" />
-                      </div>
-                      Restante Mapeado (Progresso Gantt)
-                    </h2>
-                    <div className="glass-card" style={{ height: '400px', width: '100%', padding: '1rem' }}>
-                      <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '0.5rem' }}>Esse gráfico retrai e queima o volume listado todos os dias concluídos.</p>
+                  <motion.section variants={fadeUp} style={{ marginBottom:'3.5rem' }}>
+                    <OceanSectionHeading icon={<BarChart2 size={17} color="white" />} bg="#1a5276" title="Progresso mapeado" sub="Volume restante por dia" />
+                    <div className="glass-card" style={{ padding:'1.5rem', height:'360px' }}>
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          layout="vertical"
-                          data={ganttData}
-                          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                          <XAxis type="number" stroke="#94a3b8" />
-                          <YAxis dataKey="name" type="category" stroke="#94a3b8" width={80} />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: '#38bdf8', borderRadius: '8px' }} 
-                            itemStyle={{ color: '#fff' }}
-                          />
-                          <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                          {allTasks.map((title, i) => (
-                            <Bar key={title} dataKey={title} stackId="a" fill={colors[i % colors.length]} radius={[0, 4, 4, 0]} />
+                        <BarChart layout="vertical" data={gantt} margin={{ top:8, right:20, left:8, bottom:8 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,212,255,0.04)" horizontal={false} />
+                          <XAxis type="number" stroke="#94a3b8" tick={{ fontSize:11, fill:'#cbd5e1' }} />
+                          <YAxis dataKey="name" type="category" stroke="#94a3b8" width={60} tick={{ fontSize:11, fill:'#e2e8f0' }} />
+                          <Tooltip contentStyle={{ backgroundColor:'rgba(2,12,24,0.95)', border:'1px solid rgba(0,212,255,0.2)', borderRadius:'10px' }} itemStyle={{ color:'#ffffff', fontSize:'0.8rem' }} />
+                          <Legend wrapperStyle={{ paddingTop:'0.75rem', fontSize:'0.75rem', color:'#e2e8f0' }} />
+                          {allTasks.map((t, i) => (
+                            <Bar key={t} dataKey={t} stackId="a" fill={OCEAN_PALETTE[i % OCEAN_PALETTE.length]} radius={[0,3,3,0]} />
                           ))}
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
-                  </div>
+                  </motion.section>
                 );
               })()}
 
-              <h2 style={{ fontSize: '2rem', marginBottom: '1.5rem', marginTop: '2rem', color: 'white', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                 Seu Checklist Diário Prático
-              </h2>
+              {/* Checklist */}
+              <motion.section variants={fadeUp}>
+                <OceanSectionHeading icon={<CheckCircle size={17} color="white" />} bg="#005f8a" title="Checklist diário" sub="Marque as tarefas para atualizar seu progresso" />
 
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-                <button 
-                  onClick={() => setShowCompletedDays(false)}
-                  style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer', background: !showCompletedDays ? 'var(--primary-color)' : 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid ' + (!showCompletedDays ? 'transparent' : 'rgba(255,255,255,0.1)'), fontWeight: 'bold', transition: 'all 0.2s' }}>
-                  Pendentes
-                </button>
-                <button 
-                  onClick={() => setShowCompletedDays(true)}
-                  style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer', background: showCompletedDays ? 'var(--success-color)' : 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid ' + (showCompletedDays ? 'transparent' : 'rgba(255,255,255,0.1)'), fontWeight: 'bold', transition: 'all 0.2s' }}>
-                  Arquivados (Concluídos)
-                </button>
-              </div>
+                <div style={{ display:'flex', gap:'0.5rem', marginBottom:'1.5rem' }}>
+                  {[{ label:'Pendentes', v:false, c:'#00d4ff' }, { label:'Concluídos', v:true, c:'#2dd4bf' }].map(tab => (
+                    <button key={tab.label} onClick={() => setShowCompletedDays(tab.v)}
+                      style={{
+                        padding:'0.45rem 1.1rem', borderRadius:'8px', cursor:'pointer', fontSize:'0.82rem', fontWeight:600,
+                        border: showCompletedDays === tab.v ? `1px solid ${tab.c}35` : '1px solid rgba(0,212,255,0.08)',
+                        background: showCompletedDays === tab.v ? `${tab.c}0e` : 'transparent',
+                        color: showCompletedDays === tab.v ? tab.c : '#94a3b8',
+                        transition:'all 0.2s ease',
+                      }}>
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
-                {dashboardData.daily_plan.map((day, idx) => {
-                  const allDayTasksCompleted = day.tasks.every(t => completedTasks.has(t.id));
-                  
-                  // Lógica de Abas
-                  if (showCompletedDays && !allDayTasksCompleted) return null;
-                  if (!showCompletedDays && allDayTasksCompleted) return null;
-                  
-                  const postitColors = [
-                    'rgba(56, 189, 248, 0.1)', 
-                    'rgba(52, 211, 153, 0.1)', 
-                    'rgba(167, 139, 250, 0.1)', 
-                    'rgba(251, 113, 133, 0.1)', 
-                    'rgba(250, 204, 21, 0.1)'   
-                  ];
-                  const borderColors = ['#38bdf8', '#34d399', '#a78bfa', '#fb7185', '#facc15'];
-                  const colorIdx = idx % postitColors.length;
-
-                  return (
-                    <motion.div 
-                      whileHover={{ scale: 1.02, y: -5 }}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: idx * 0.05 }}
-                      key={day.day}
-                      style={{ 
-                        background: postitColors[colorIdx], 
-                        backdropFilter: 'blur(10px)',
-                        border: `1px solid ${borderColors[colorIdx]}40`,
-                        borderTop: `4px solid ${allDayTasksCompleted ? 'var(--success-color)' : borderColors[colorIdx]}`,
-                        borderRadius: '0 0.5rem 0.5rem 0.5rem', 
-                        padding: '1.5rem',
-                        boxShadow: `0 4px 6px -1px rgba(0,0,0,0.1), 3px -3px 0px ${borderColors[colorIdx]}20`,
-                        position: 'relative',
-                        opacity: allDayTasksCompleted ? 0.6 : 1
-                      }}
-                    >
-                      <div style={{
-                        position: 'absolute', top: -1, right: -1, width: 0, height: 0,
-                        borderBottom: `20px solid ${borderColors[colorIdx]}40`,
-                        borderRight: '20px solid transparent'
-                      }} />
-                      
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: `1px dashed ${borderColors[colorIdx]}80`, paddingBottom: '0.5rem' }}>
-                        <h3 style={{ fontSize: '1.3rem', color: '#fff', fontWeight: 'bold' }}>
-                          Dia {day.day}
-                        </h3>
-                        {allDayTasksCompleted ? <CheckCircle color="var(--success-color)" size={24} /> : <AlertCircle color={borderColors[colorIdx]} size={24} />}
-                      </div>
-                      
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        {day.tasks.map(task => {
-                          const isDone = completedTasks.has(task.id);
-                          return (
-                            <div 
-                              key={task.id} 
-                              onClick={() => toggleTask(task.id)}
-                              style={{ 
-                                display: 'flex', flexDirection: 'column',
-                                cursor: 'pointer',
-                                background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: '8px',
-                                opacity: isDone ? 0.5 : 1, transition: 'all 0.2s ease',
-                                borderLeft: `3px solid ${isDone ? 'var(--success-color)' : borderColors[colorIdx]}`
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                                <div className={`checkbox-custom ${isDone ? 'checked' : ''}`} style={{ flexShrink: 0, marginTop: '2px' }}>
-                                  {isDone && <Check size={16} color="white" />}
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(240px, 1fr))', gap:'1.1rem', alignItems:'start' }}>
+                  {dashboardData.daily_plan.map((day, idx) => {
+                    const allDone = day.tasks.every(t => completedTasks.has(t.id));
+                    if (showCompletedDays && !allDone) return null;
+                    if (!showCompletedDays && allDone) return null;
+                    const acc = DAY_COLORS[idx % DAY_COLORS.length];
+                    return (
+                      <motion.div key={day.day}
+                        whileHover={{ y:-4, scale:1.01 }}
+                        initial={{ opacity:0, scale:0.95 }}
+                        animate={{ opacity:1, scale:1 }}
+                        transition={{ delay:idx*0.04 }}
+                        style={{
+                          background:'rgba(4,20,38,0.72)',
+                          backdropFilter:'blur(24px)',
+                          border:`1px solid ${acc}18`,
+                          borderTop:`2px solid ${allDone ? '#2dd4bf' : acc}`,
+                          borderRadius:'16px',
+                          padding:'1.15rem',
+                          opacity: allDone ? 0.55 : 1,
+                          transition:'opacity 0.3s ease',
+                        }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.9rem', paddingBottom:'0.65rem', borderBottom:`1px solid ${acc}12` }}>
+                          <span style={{ color:'#ffffff', fontWeight:700 }}>Dia {day.day}</span>
+                          {allDone ? <CheckCircle size={16} color="#2dd4bf" /> : <AlertCircle size={16} color={acc} style={{ opacity:0.6 }} />}
+                        </div>
+                        <div style={{ display:'flex', flexDirection:'column', gap:'0.45rem' }}>
+                          {day.tasks.map(task => {
+                            const done = completedTasks.has(task.id);
+                            return (
+                              <div key={task.id} onClick={() => toggleTask(task.id)}
+                                style={{
+                                  display:'flex', alignItems:'flex-start', gap:'0.6rem',
+                                  padding:'0.6rem 0.7rem', borderRadius:'8px', cursor:'pointer',
+                                  background: done ? 'rgba(45,212,191,0.04)' : 'rgba(0,212,255,0.02)',
+                                  border:`1px solid ${done ? 'rgba(45,212,191,0.14)' : 'transparent'}`,
+                                  transition:'all 0.2s ease',
+                                  opacity: done ? 0.6 : 1,
+                                }}>
+                                <div className={`checkbox-custom ${done ? 'checked' : ''}`} style={{ marginTop:'2px' }}>
+                                  {done && <Check size={12} color="white" />}
                                 </div>
-                                <span style={{ fontWeight: 500, fontSize: '0.95rem', textDecoration: isDone ? 'line-through' : 'none', color: isDone ? '#94a3b8' : '#e2e8f0', lineHeight: 1.3 }}>
-                                  {task.title}
-                                </span>
+                                <div style={{ flex:1 }}>
+                                  <span style={{
+                                    display:'block', fontSize:'0.85rem', fontWeight:500, lineHeight:1.3,
+                                    color: done ? '#cbd5e1' : '#f8fafc',
+                                    textDecoration: done ? 'line-through' : 'none',
+                                  }}>
+                                    {task.title}
+                                  </span>
+                                  <span style={{ display:'flex', alignItems:'center', gap:'3px', color:'#94a3b8', fontSize:'0.72rem', marginTop:'0.15rem' }}>
+                                    <Clock size={9} /> ~{task.duration}h
+                                  </span>
+                                </div>
                               </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#94a3b8', fontSize: '0.8rem', marginTop: '0.5rem', marginLeft: '1.75rem' }}>
-                                <Clock size={12} />
-                                ~{task.duration}h
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </motion.div>
-                  )
-                })}
-              </div>
-
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </motion.section>
 
             </motion.div>
           )}
         </AnimatePresence>
       </main>
+
+      {/* Footer */}
+      <footer style={{
+        textAlign:'center', padding:'2rem 1.5rem',
+        borderTop:'1px solid rgba(0,212,255,0.06)',
+        color:'#94a3b8', fontSize:'0.76rem',
+        position:'relative', zIndex:1,
+      }}>
+        © {new Date().getFullYear()} VibeStudy — Tecnologia a serviço da sua aprovação.
+      </footer>
+
+      {/* Ocean gradient keyframe inline */}
       <style>{`
-        .spin-anim {
-          animation: spin 1s linear infinite;
+        @keyframes oceanGradientMove {
+          0%   { background-position: 0% center; }
+          100% { background-position: 200% center; }
         }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
       `}</style>
-    </div>
     </>
+  );
+}
+
+/* ── Section Heading oceanico ───────────────────────────── */
+function OceanSectionHeading({ icon, bg, title, sub }) {
+  return (
+    <div style={{ marginBottom:'1.4rem' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'0.7rem', marginBottom:'0.2rem' }}>
+        <div style={{ width:'34px', height:'34px', borderRadius:'10px', background:bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          {icon}
+        </div>
+        <h2 style={{ fontSize:'1.35rem', fontWeight:700, color:'#ffffff', margin:0 }}>{title}</h2>
+      </div>
+      {sub && <p style={{ color:'#94a3b8', fontSize:'0.82rem', paddingLeft:'46px' }}>{sub}</p>}
+    </div>
   );
 }
 

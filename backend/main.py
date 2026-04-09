@@ -7,7 +7,7 @@ import PyPDF2
 from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from crewai import Agent, Task, Crew, Process, LLM
 
 try:
@@ -232,7 +232,7 @@ async def upload_edital(
     test_date: Optional[str] = Form(None)
 ):
     task_id = str(uuid.uuid4())
-    temp_file_path = f"/tmp/{uuid.uuid4()}_{file.filename}"
+    temp_file_path = os.path.join(os.path.expanduser("~"), "AppData", "Local", "Temp", f"{uuid.uuid4()}_{file.filename}")
     
     # Save file temporarily
     with open(temp_file_path, "wb") as buffer:
