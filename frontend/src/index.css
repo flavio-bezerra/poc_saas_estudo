@@ -52,6 +52,12 @@
   --text-color:        var(--text-primary);
 }
 
+/* ── Skeleton screen ─────────────────────────────────────── */
+@keyframes skeletonPulse {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
 /* ── Reset ───────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
