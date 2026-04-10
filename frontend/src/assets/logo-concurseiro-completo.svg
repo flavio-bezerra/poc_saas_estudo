@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg 
+  width="240" 
+  height="80" 
+  viewBox="0 0 240 80" 
+  xmlns="http://www.w3.org/2000/svg">
+  
+  <!-- Definições -->
+  <defs>
+    <!-- Gradientes da marca -->
+    <linearGradient id="mainOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF7000;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#FF8C33;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFBD00;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="mainBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#004AAD;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a6fd4;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Filtro de sombra -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feFlood flood-color="#000000" flood-opacity="0.1"/>
+      <feComposite in2="offsetblur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Máscara circular para o ícone -->
+    <clipPath id="circleClip">
+      <circle cx="40" cy="40" r="28"/>
+    </clipPath>
+  </defs>
+  
+  <!-- Logo Completo -->
+  <g id="logo-full">
+    
+    <!-- Círculo de fundo do ícone -->
+    <circle cx="40" cy="40" r="30" fill="white" filter="url(#shadow)"/>
+    
+    <!-- Ícone principal -->
+    <g id="icon-main" clip-path="url(#circleClip)">
+      <!-- Fundo gradiente -->
+      <rect x="10" y="10" width="60" height="60" fill="url(#mainOrange)" opacity="0.1"/>
+      
+      <!-- Livro/Documento -->
+      <g transform="translate(40, 40)">
+        <!-- Páginas do livro -->
+        <path d="M -12 -10 
+                 C -12 -10, -6 -12, 0 -10
+                 C 6 -12, 12 -10, 12 -10
+                 L 12 10
+                 C 12 10, 6 8, 0 10
+                 C -6 8, -12 10, -12 10
+                 Z" 
+              fill="#004AAD" 
+              stroke="#004AAD"
+              stroke-width="1"
+              opacity="0.9"/>
+        
+        <!-- Linha central do livro -->
+        <line x1="0" y1="-10" x2="0" y2="10" 
+              stroke="white" 
+              stroke-width="1.5" 
+              opacity="0.5"/>
+        
+        <!-- Check de aprovação -->
+        <circle cx="0" cy="0" r="7" fill="url(#mainOrange)"/>
+        <path d="M -3 0 L -1 2 L 3 -2" 
+              stroke="white" 
+              stroke-width="2" 
+              stroke-linecap="round" 
+              stroke-linejoin="round"
+              fill="none"/>
+      </g>
+    </g>
+    
+    <!-- Texto Principal -->
+    <text x="85" y="45" 
+          font-family="Outfit, Arial Black, sans-serif" 
+          font-size="28" 
+          font-weight="800"
+          fill="#004AAD"
+          letter-spacing="-0.5">
+      Concurseiro
+    </text>
+    
+    <!-- Tagline (opcional) -->
+    <text x="85" y="60" 
+          font-family="Inter, Arial, sans-serif" 
+          font-size="10" 
+          font-weight="500"
+          fill="#FF7000"
+          letter-spacing="0.5"
+          opacity="0.8">
+      PLANEJE • ESTUDE • CONQUISTE
+    </text>
+    
+    <!-- Elementos decorativos orgânicos -->
+    <g id="organic-shapes" opacity="0.3">
+      <ellipse cx="220" cy="20" rx="8" ry="6" fill="#FFBD00" transform="rotate(45 220 20)"/>
+      <ellipse cx="225" cy="30" rx="6" ry="4" fill="#FF7000" transform="rotate(-30 225 30)"/>
+      <ellipse cx="215" cy="35" rx="5" ry="3" fill="#004AAD" transform="rotate(60 215 35)"/>
+    </g>
+  </g>
+  
+  <!-- Versão Ícone apenas (para uso em tamanhos pequenos) -->
+  <g id="icon-standalone" style="display:none">
+    <circle cx="40" cy="40" r="30" fill="white" filter="url(#shadow)"/>
+    <use href="#icon-main"/>
+  </g>
+  
+  <!-- Versão horizontal simplificada -->
+  <g id="logo-horizontal" style="display:none">
+    <g transform="scale(0.6) translate(0, 20)">
+      <use href="#icon-main"/>
+    </g>
+    <text x="55" y="45" 
+          font-family="Outfit, sans-serif" 
+          font-size="24" 
+          font-weight="800"
+          fill="#004AAD">
+      Concurseiro
+    </text>
+  </g>
+  
+</svg>
