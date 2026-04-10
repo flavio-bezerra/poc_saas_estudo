@@ -1063,9 +1063,9 @@ function App() {
                 // Tamanho dinâmico do scatter: 52px por área, mínimo 300
                 const scatterH = Math.max(300, dynamic.length * 52);
                 return (
-                  <motion.section variants={fadeUp} style={{ marginBottom: '3.5rem' }}>
+                  <motion.section variants={fadeUp} style={{ marginBottom: '3.5rem', overflow: 'hidden' }}>
                     <OceanSectionHeading icon={<Compass size={17} color="#fff" />} bg="#0b7a6b" title="Visão holística" sub="Volume de estudo restante por área" />
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '1.1rem', alignItems: 'start' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '1.1rem', alignItems: 'start', overflow: 'hidden' }}>
 
                       {/* Scatter — container explícito com px para não quebrar */}
                       <div className="glass-card" style={{ padding: '1.4rem', minWidth: 0 }}>
@@ -1093,9 +1093,9 @@ function App() {
                       </div>
 
                       {/* Lista de áreas — altura livre, scrollável */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: `${scatterH + 36}px`, overflowY: 'auto', minWidth: 0 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxHeight: `${scatterH + 36}px`, overflowY: 'auto', minWidth: 0, paddingRight: '4px' }}>
                         {dynamic.map((ka, idx) => (
-                          <div key={idx} className="glass-card" style={{ padding: '1rem 1.15rem', borderLeft: `3px solid ${OCEAN_PALETTE[idx % OCEAN_PALETTE.length]}`, flexShrink: 0 }}>
+                          <div key={idx} className="compact-card" style={{ borderLeft: `3px solid ${OCEAN_PALETTE[idx % OCEAN_PALETTE.length]}`, flexShrink: 0 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.2rem' }}>
                               <h4 style={{ color: 'var(--blue-primary)', fontSize: '0.87rem', fontWeight: 700 }}>{ka.name}</h4>
                               <span style={{ color: OCEAN_PALETTE[idx % OCEAN_PALETTE.length], fontWeight: 700, fontSize: '0.78rem', flexShrink: 0, marginLeft: '0.5rem' }}>{ka.total_hours}h</span>
